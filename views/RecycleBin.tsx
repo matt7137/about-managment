@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ViewState, MOCK_DATA_DELETED } from '../types';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import Tooltip from '../components/Tooltip';
 
 interface Props {
   onNavigate: (view: ViewState) => void;
@@ -78,6 +79,32 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
     }
   };
 
+  const renderSourceBadge = (source?: string, locale?: string) => {
+    if (!source) return null;
+    
+    const configs = {
+      'Global': { icon: 'public', bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' },
+      'Translated': { icon: 'translate', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100' },
+      'Local': { icon: 'domain', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-100' },
+    };
+
+    const config = configs[source as keyof typeof configs];
+    if (!config) return null;
+
+    return (
+       <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold border ${config.bg} ${config.text} ${config.border}`}>
+          <span className="material-symbols-outlined text-[14px] leading-none">{config.icon}</span>
+          <span className="leading-none">{source}</span>
+          {locale && (
+             <>
+               <span className="mx-0.5 opacity-30 leading-none">|</span>
+               <span className="leading-none tracking-wider">{locale}</span>
+             </>
+          )}
+       </span>
+    );
+  };
+
   const modalContent = getDeleteModalContent();
 
   return (
@@ -92,13 +119,15 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
             Recover deleted content or permanently remove items.
           </p>
         </div>
-        <button 
-          onClick={() => setDeleteState({ isOpen: true, type: 'empty' })}
-          className="group flex items-center justify-center gap-2 rounded-lg bg-slate-200 px-6 py-3.5 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-300 active:scale-95 whitespace-nowrap"
-        >
-          <span className="material-symbols-outlined text-[20px]">delete_forever</span>
-          Empty Recycle Bin
-        </button>
+        <Tooltip content="Permanently delete all items">
+          <button 
+            onClick={() => setDeleteState({ isOpen: true, type: 'empty' })}
+            className="group flex items-center justify-center gap-2 rounded-lg bg-slate-200 px-6 py-3.5 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-300 active:scale-95 whitespace-nowrap"
+          >
+            <span className="material-symbols-outlined text-[20px]">delete_forever</span>
+            Empty Recycle Bin
+          </button>
+        </Tooltip>
       </div>
 
       <div className="flex flex-col gap-6 mt-2">
@@ -182,26 +211,32 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
                                 />
                             </td>
                             <td className="whitespace-nowrap px-6 py-5" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-start gap-2">
-                                <button 
-                                onClick={onRestore}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition-colors" title="Restore"
-                                >
-                                <span className="material-symbols-outlined text-[20px]">undo</span>
-                                </button>
-                                <button 
-                                onClick={() => setDeleteState({ isOpen: true, type: 'single' })}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors" 
-                                title="Permanent Delete"
-                                >
-                                <span className="material-symbols-outlined text-[20px]">delete_forever</span>
-                                </button>
+                            <div className="flex items-center justify-start gap-1">
+                                <Tooltip content="Restore">
+                                  <button 
+                                    onClick={onRestore}
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition-colors"
+                                  >
+                                    <span className="material-symbols-outlined text-[20px]">undo</span>
+                                  </button>
+                                </Tooltip>
+                                <Tooltip content="Delete Forever">
+                                  <button 
+                                    onClick={() => setDeleteState({ isOpen: true, type: 'single' })}
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors" 
+                                  >
+                                    <span className="material-symbols-outlined text-[20px]">delete_forever</span>
+                                  </button>
+                                </Tooltip>
                             </div>
                             </td>
                             <td className="whitespace-nowrap px-6 py-5">
                             <div className="opacity-75">
-                                <div className="text-sm font-bold text-slate-900">{item.title}</div>
-                                <div className="text-xs text-slate-500">Seasonal promotion</div>
+                                <div className="text-sm font-bold text-slate-900 mb-1">{item.title}</div>
+                                <div className="flex items-center gap-2">
+                                    {renderSourceBadge(item.source, item.locale)}
+                                    <span className="text-xs text-slate-500 line-clamp-1 max-w-[150px]">{index === 0 ? 'Seasonal promotion' : index === 1 ? 'Legacy content' : 'Draft version'}</span>
+                                </div>
                             </div>
                             </td>
                             <td className="whitespace-nowrap px-6 py-5">

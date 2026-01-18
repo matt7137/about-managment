@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ViewState } from '../types';
 
 interface Props {
@@ -13,9 +13,13 @@ interface Props {
 const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug, context, onNavigate, onSave }) => {
   const [title, setTitle] = useState(initialTitle);
   const [slug, setSlug] = useState(initialSlug);
+  const [hasForbiddenTags, setHasForbiddenTags] = useState(false);
   const isReadOnly = mode === 'read-only';
+  
+  // Use a ref to access the current content for saving if needed later
+  const editorContentRef = useRef<HTMLDivElement>(null);
 
-  const htmlContent = `
+  const initialHtmlContent = `
 <div class="page-content">
   <!-- Introduction Section -->
   <p class="mb-4 text-lg">
@@ -31,6 +35,13 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
     </span>
   </div>
 </div>`;
+
+  const handleEditorInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const content = e.currentTarget.innerText;
+    // Regex to check for <script or <style tags, case insensitive, allowing whitespace
+    const forbiddenPattern = /<\s*(script|style)/i;
+    setHasForbiddenTags(forbiddenPattern.test(content));
+  };
 
   return (
     <main className="w-full h-full p-4 md:p-6 pb-20 max-w-[1600px] mx-auto">
@@ -55,7 +66,12 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
           {!isReadOnly && (
             <button 
               onClick={onSave}
-              className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold shadow-md shadow-primary/20 transition-all text-sm flex items-center gap-2"
+              disabled={hasForbiddenTags}
+              className={`px-4 py-2 rounded-lg font-bold shadow-md transition-all text-sm flex items-center gap-2 ${
+                hasForbiddenTags 
+                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' 
+                  : 'bg-primary hover:bg-primary-dark text-white shadow-primary/20'
+              }`}
             >
               <span className="material-symbols-outlined text-[18px]">save</span>
               Save
@@ -90,21 +106,38 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
                   )}
                 </div>
                 
-                <div className="mb-4 bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r shadow-sm">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <span className="material-symbols-outlined text-orange-400 text-xl">info</span>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-orange-700">
-                        <span className="font-bold">HTML only.</span> Please do not include <code>&lt;script&gt;</code> or <code>&lt;style&gt;</code> tags here.
-                      </p>
+                {/* Warning / Info Box */}
+                {hasForbiddenTags ? (
+                  <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r shadow-sm animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <span className="material-symbols-outlined text-red-500 text-xl icon-filled">error</span>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-bold text-red-800">Security Warning</h3>
+                        <p className="text-sm text-red-700 mt-1">
+                          For security reasons, <code>&lt;script&gt;</code> and <code>&lt;style&gt;</code> tags are strictly forbidden. Please remove them to save your changes.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="mb-4 bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r shadow-sm">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <span className="material-symbols-outlined text-orange-400 text-xl">info</span>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-orange-700">
+                          <span className="font-bold">HTML only.</span> Please do not include <code>&lt;script&gt;</code> or <code>&lt;style&gt;</code> tags here.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Simulated Code Editor */}
-                <div className="border border-slate-300 rounded-lg overflow-hidden flex flex-col min-h-[500px] shadow-sm bg-white font-mono text-sm">
+                <div className={`border rounded-lg overflow-hidden flex flex-col min-h-[500px] shadow-sm bg-white font-mono text-sm transition-colors ${hasForbiddenTags ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300'}`}>
                   <div className="flex items-center bg-[#f3f3f3] border-b border-slate-300">
                     <div className="px-4 py-2 bg-white border-r border-slate-300 text-xs text-slate-700 border-t-2 border-t-primary flex items-center gap-2">
                       <span className="material-symbols-outlined text-[14px] text-orange-600">code</span>
@@ -113,14 +146,17 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
                   </div>
                   <div className="flex flex-1 overflow-hidden relative group">
                     <div className="w-12 bg-[#f0f0f0] border-r border-slate-200 text-slate-400 text-right pr-3 pt-4 select-none leading-6 text-[13px] font-mono flex-shrink-0 z-10">
-                      {Array.from({length: 20}, (_, i) => <div key={i}>{i + 1}</div>)}
+                      {Array.from({length: 30}, (_, i) => <div key={i}>{i + 1}</div>)}
                     </div>
                     <div 
+                      ref={editorContentRef}
                       className="flex-1 p-4 overflow-auto bg-white text-[#24292e] leading-6 whitespace-pre font-mono text-[13px] outline-none"
                       contentEditable={!isReadOnly}
                       spellCheck={false}
+                      onInput={handleEditorInput}
+                      suppressContentEditableWarning={true}
                     >
-                      {htmlContent.trim()}
+                      {initialHtmlContent.trim()}
                     </div>
                   </div>
                 </div>
