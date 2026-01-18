@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ViewState, MOCK_DATA_GLOBAL } from '../types';
 import ContextSwitcher from '../components/ContextSwitcher';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import StatusDropdown from '../components/StatusDropdown';
+import StatusChangeModal from '../components/StatusChangeModal';
 
 interface Props {
   onNavigate: (view: ViewState) => void;
@@ -12,6 +14,42 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [openLocalCardSettingsId, setOpenLocalCardSettingsId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  
+  // Filter & Sort State
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Published' | 'Draft'>('All');
+  const [sortOption, setSortOption] = useState<'Last Modified' | 'Alphabetical' | 'Status'>('Last Modified');
+
+  // Status Change State
+  const [statusToChange, setStatusToChange] = useState<{
+    id: string;
+    title: string;
+    newStatus: 'Published' | 'Draft';
+  } | null>(null);
+
+  // Derived Data (Filter & Sort)
+  const processedData = useMemo(() => {
+    let data = [...MOCK_DATA_GLOBAL];
+
+    // Filter
+    if (filterStatus !== 'All') {
+      data = data.filter(item => item.status === filterStatus);
+    }
+
+    // Sort
+    data.sort((a, b) => {
+      switch (sortOption) {
+        case 'Alphabetical':
+          return a.title.localeCompare(b.title);
+        case 'Status':
+          return a.status.localeCompare(b.status);
+        case 'Last Modified':
+        default:
+          return new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime();
+      }
+    });
+
+    return data;
+  }, [filterStatus, sortOption]);
 
   const toggleDropdown = (name: 'filter' | 'sort') => {
     setActiveDropdown(activeDropdown === name ? null : name);
@@ -24,6 +62,15 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
   const toggleLocalCardSettings = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setOpenLocalCardSettingsId(openLocalCardSettingsId === id ? null : id);
+  };
+
+  const handleStatusSelect = (id: string, title: string, newStatus: 'Published' | 'Draft') => {
+    setStatusToChange({ id, title, newStatus });
+  };
+
+  const confirmStatusChange = () => {
+    console.log(`Changing status of ${statusToChange?.id} to ${statusToChange?.newStatus}`);
+    setStatusToChange(null);
   };
 
   return (
@@ -54,7 +101,7 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
             <button className="relative flex items-center gap-2 pb-4 text-primary after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-full after:bg-primary after:content-['']">
               <span className="material-symbols-outlined text-[20px]">inventory_2</span>
               <span className="text-sm font-bold tracking-wide">Active Content</span>
-              <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-extrabold text-primary">12</span>
+              <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-extrabold text-primary">{processedData.length}</span>
             </button>
             <button 
               onClick={() => onNavigate('RECYCLE_BIN')}
@@ -90,16 +137,21 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
               >
                 <span className="material-symbols-outlined text-[20px]">filter_list</span>
                 Filter
+                {filterStatus !== 'All' && <span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px]">{filterStatus}</span>}
                 <span className={`material-symbols-outlined text-[18px] transition-transform ${activeDropdown === 'filter' ? 'rotate-180' : ''}`}>expand_less</span>
               </button>
               
               {activeDropdown === 'filter' && (
                 <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl ring-1 ring-slate-900/5 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <div className="mb-1 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-50">Filter by Status</div>
-                  {['All Pages', 'Published Only', 'Drafts', 'Scheduled'].map((opt, i) => (
-                    <button key={opt} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors ${i === 0 ? 'bg-slate-50 text-slate-900' : ''}`}>
-                      {opt}
-                      {i === 0 && <span className="material-symbols-outlined text-[16px] text-primary">check</span>}
+                  {['All', 'Published', 'Draft'].map((opt) => (
+                    <button 
+                      key={opt} 
+                      onClick={() => { setFilterStatus(opt as any); setActiveDropdown(null); }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${filterStatus === opt ? 'bg-slate-50 text-slate-900' : 'text-slate-700 hover:bg-slate-50'}`}
+                    >
+                      {opt === 'All' ? 'All Pages' : opt}
+                      {filterStatus === opt && <span className="material-symbols-outlined text-[16px] text-primary">check</span>}
                     </button>
                   ))}
                   <div className="my-1 border-t border-slate-100"></div>
@@ -127,12 +179,19 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                   <div className="mb-1 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-50">Sort Order</div>
                   {[
                     { label: 'Last Modified', icon: 'schedule' },
-                    { label: 'Alphabetical (A-Z)', icon: 'sort_by_alpha' },
+                    { label: 'Alphabetical', icon: 'sort_by_alpha' },
                     { label: 'Status', icon: 'flag' }
-                  ].map((opt, i) => (
-                    <button key={opt.label} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors ${i === 0 ? 'bg-slate-50 text-slate-900' : ''}`}>
-                      <span className="material-symbols-outlined text-[18px] text-slate-400">{opt.icon}</span>
-                      {opt.label}
+                  ].map((opt) => (
+                    <button 
+                      key={opt.label} 
+                      onClick={() => { setSortOption(opt.label as any); setActiveDropdown(null); }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${sortOption === opt.label ? 'bg-slate-50 text-slate-900' : 'text-slate-700 hover:bg-slate-50'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[18px] text-slate-400">{opt.icon}</span>
+                        {opt.label}
+                      </div>
+                      {sortOption === opt.label && <span className="material-symbols-outlined text-[16px] text-primary">check</span>}
                     </button>
                   ))}
                 </div>
@@ -155,7 +214,7 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {MOCK_DATA_GLOBAL.map((item, index) => (
+                {processedData.length > 0 ? processedData.map((item) => (
                   <React.Fragment key={item.id}>
                     <tr className={`group hover:bg-slate-50 transition-colors ${expandedRowId === item.id ? 'bg-slate-50 border-l-[3px] border-primary' : ''}`}>
                       <td className="whitespace-nowrap px-6 py-5">
@@ -196,15 +255,10 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                         <code className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 font-mono">{item.slug}</code>
                       </td>
                       <td className="whitespace-nowrap px-6 py-5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-2 py-1 text-xs font-bold ring-1 ring-inset transition-all ${
-                          item.status === 'Published' 
-                            ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' 
-                            : 'bg-yellow-50 text-yellow-800 ring-yellow-600/20'
-                        }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${item.status === 'Published' ? 'bg-emerald-600' : 'bg-yellow-500'}`}></span>
-                          {item.status}
-                          <span className="material-symbols-outlined text-[16px]">expand_more</span>
-                        </span>
+                        <StatusDropdown 
+                          currentStatus={item.status}
+                          onSelectStatus={(newStatus) => handleStatusSelect(item.id, item.title, newStatus)}
+                        />
                       </td>
                       <td className="whitespace-nowrap px-6 py-5">
                         <div className="flex flex-col">
@@ -354,13 +408,19 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                       </tr>
                     )}
                   </React.Fragment>
-                ))}
+                )) : (
+                   <tr>
+                    <td colSpan={5} className="py-12 text-center text-slate-500">
+                      No pages found matching your filters.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
           <div className="flex items-center justify-between border-t border-slate-200 bg-white px-6 py-4">
-            <p className="text-sm text-slate-500">
-              Showing <span className="font-bold text-slate-900">1</span> to <span className="font-bold text-slate-900">3</span> of <span className="font-bold text-slate-900">12</span> results for <span className="font-bold text-primary">Global</span>
+             <p className="text-sm text-slate-500">
+              Showing <span className="font-bold text-slate-900">{processedData.length > 0 ? 1 : 0}</span> to <span className="font-bold text-slate-900">{Math.min(3, processedData.length)}</span> of <span className="font-bold text-slate-900">{processedData.length}</span> results for <span className="font-bold text-primary">Global</span>
             </p>
             <div className="flex gap-2">
               <button className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-slate-50 disabled:opacity-50 transition-colors" disabled>Previous</button>
@@ -375,6 +435,15 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
         isOpen={!!itemToDelete} 
         onClose={() => setItemToDelete(null)}
         onConfirm={() => setItemToDelete(null)}
+      />
+
+      {/* Status Change Confirmation Modal */}
+      <StatusChangeModal 
+        isOpen={!!statusToChange}
+        itemTitle={statusToChange?.title || ''}
+        newStatus={statusToChange?.newStatus || 'Draft'}
+        onClose={() => setStatusToChange(null)}
+        onConfirm={confirmStatusChange}
       />
     </main>
   );

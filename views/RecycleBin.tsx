@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ViewState, MOCK_DATA_DELETED } from '../types';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 
@@ -13,8 +13,45 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
     type: 'single' | 'bulk' | 'empty' | null;
   }>({ isOpen: false, type: null });
 
+  // Selection State
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
+  const isAllSelected = MOCK_DATA_DELETED.length > 0 && selectedItems.size === MOCK_DATA_DELETED.length;
+  const isIndeterminate = selectedItems.size > 0 && selectedItems.size < MOCK_DATA_DELETED.length;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isIndeterminate;
+    }
+  }, [isIndeterminate]);
+
+  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const allIds = new Set(MOCK_DATA_DELETED.map(item => item.id));
+      setSelectedItems(allIds);
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const toggleItem = (id: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
   const confirmDelete = () => {
     // Here you would implement actual delete logic
+    console.log("Delete confirmed for type:", deleteState.type);
+    if (deleteState.type === 'bulk') {
+        console.log("Deleting items:", Array.from(selectedItems));
+        setSelectedItems(new Set());
+    }
     setDeleteState({ isOpen: false, type: null });
   };
 
@@ -28,7 +65,7 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
         };
       case 'bulk':
         return {
-          title: "Permanently Delete Selected?",
+          title: `Permanently Delete ${selectedItems.size} Item${selectedItems.size !== 1 ? 's' : ''}?`,
           description: "Are you sure you want to permanently delete the selected items? This action cannot be undone.",
           confirmText: "Delete Forever"
         };
@@ -112,7 +149,13 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
               <thead className="bg-red-50/50">
                 <tr>
                   <th className="pl-6 py-4 w-[60px]">
-                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary" />
+                    <input 
+                        type="checkbox" 
+                        ref={headerCheckboxRef}
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" 
+                    />
                   </th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 w-[140px]">Actions</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Page Title</th>
@@ -122,51 +165,63 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {MOCK_DATA_DELETED.map((item, index) => (
-                  <tr key={item.id} className={`group hover:bg-slate-50 transition-colors ${index > 0 ? 'bg-primary/5' : ''}`}>
-                    <td className="whitespace-nowrap pl-6 py-5">
-                       <input type="checkbox" checked={index > 0} className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary" />
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-5">
-                      <div className="flex items-center justify-start gap-2">
-                        <button 
-                          onClick={onRestore}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition-colors" title="Restore"
+                {MOCK_DATA_DELETED.map((item, index) => {
+                    const isSelected = selectedItems.has(item.id);
+                    return (
+                        <tr 
+                            key={item.id} 
+                            onClick={() => toggleItem(item.id)}
+                            className={`group hover:bg-slate-50 transition-colors cursor-pointer ${isSelected ? 'bg-primary/5' : ''}`}
                         >
-                          <span className="material-symbols-outlined text-[20px]">undo</span>
-                        </button>
-                        <button 
-                          onClick={() => setDeleteState({ isOpen: true, type: 'single' })}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors" 
-                          title="Permanent Delete"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">delete_forever</span>
-                        </button>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-5">
-                      <div className="opacity-75">
-                        <div className="text-sm font-bold text-slate-900">{item.title}</div>
-                        <div className="text-xs text-slate-500">Seasonal promotion</div>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-5">
-                      <code className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500 font-mono line-through">{item.slug}</code>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-5">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700 ring-1 ring-inset ring-red-600/20">
-                        <span className="h-1.5 w-1.5 rounded-full bg-red-600"></span>
-                        Deleted
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-5">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-slate-900">{item.lastModified}</span>
-                        <span className="text-xs text-slate-500">by {item.author}</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            <td className="whitespace-nowrap pl-6 py-5">
+                                <input 
+                                    type="checkbox" 
+                                    checked={isSelected}
+                                    onChange={() => toggleItem(item.id)}
+                                    className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" 
+                                />
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-5" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-start gap-2">
+                                <button 
+                                onClick={onRestore}
+                                className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition-colors" title="Restore"
+                                >
+                                <span className="material-symbols-outlined text-[20px]">undo</span>
+                                </button>
+                                <button 
+                                onClick={() => setDeleteState({ isOpen: true, type: 'single' })}
+                                className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors" 
+                                title="Permanent Delete"
+                                >
+                                <span className="material-symbols-outlined text-[20px]">delete_forever</span>
+                                </button>
+                            </div>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-5">
+                            <div className="opacity-75">
+                                <div className="text-sm font-bold text-slate-900">{item.title}</div>
+                                <div className="text-xs text-slate-500">Seasonal promotion</div>
+                            </div>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-5">
+                            <code className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500 font-mono line-through">{item.slug}</code>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-5">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700 ring-1 ring-inset ring-red-600/20">
+                                <span className="h-1.5 w-1.5 rounded-full bg-red-600"></span>
+                                Deleted
+                            </span>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-5">
+                            <div className="flex flex-col">
+                                <span className="text-sm font-medium text-slate-900">{item.lastModified}</span>
+                                <span className="text-xs text-slate-500">by {item.author}</span>
+                            </div>
+                            </td>
+                        </tr>
+                    );
+                })}
               </tbody>
             </table>
           </div>
@@ -174,27 +229,32 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
       </div>
       
       {/* Floating Bulk Action Bar */}
-      <div className="fixed bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 pl-4 shadow-2xl ring-1 ring-black/5">
-        <div className="mr-2 flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white shadow-sm">2</span>
-          <span className="text-sm font-bold text-slate-900">Selected</span>
+      {selectedItems.size > 0 && (
+        <div className="fixed bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 pl-4 shadow-2xl ring-1 ring-black/5 animate-in slide-in-from-bottom-4 duration-300">
+            <div className="mr-2 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white shadow-sm">{selectedItems.size}</span>
+            <span className="text-sm font-bold text-slate-900">Selected</span>
+            </div>
+            <div className="h-6 w-px bg-slate-200 mx-1"></div>
+            <button 
+            onClick={() => {
+                onRestore();
+                setSelectedItems(new Set());
+            }}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100 transition-colors"
+            >
+            <span className="material-symbols-outlined text-[20px]">undo</span>
+            Bulk Restore
+            </button>
+            <button 
+            onClick={() => setDeleteState({ isOpen: true, type: 'bulk' })}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+            >
+            <span className="material-symbols-outlined text-[20px]">delete_forever</span>
+            Delete Forever
+            </button>
         </div>
-        <div className="h-6 w-px bg-slate-200 mx-1"></div>
-        <button 
-          onClick={onRestore}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100 transition-colors"
-        >
-          <span className="material-symbols-outlined text-[20px]">undo</span>
-          Bulk Restore
-        </button>
-        <button 
-          onClick={() => setDeleteState({ isOpen: true, type: 'bulk' })}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
-        >
-          <span className="material-symbols-outlined text-[20px]">delete_forever</span>
-          Delete Forever
-        </button>
-      </div>
+      )}
 
       <DeleteConfirmationModal 
         isOpen={deleteState.isOpen}

@@ -43,10 +43,25 @@ const CompareView: React.FC<Props> = ({ onNavigate, onSave }) => {
               <span>Added</span>
             </div>
           </div>
-          <button className="group flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-bold text-red-700 shadow-sm transition-all hover:bg-red-100 active:scale-95">
-             <span className="material-symbols-outlined text-[18px]">history</span>
-             Revert to Global
-          </button>
+          
+          <div className="flex items-center bg-white rounded-lg border border-slate-200 p-1 shadow-sm mr-2">
+             <button 
+                className="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                title="Discard all changes and match Global"
+             >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+                Reject All
+             </button>
+             <div className="w-px h-4 bg-slate-200 mx-1"></div>
+             <button 
+                className="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                title="Keep all current local overrides"
+             >
+                <span className="material-symbols-outlined text-[18px]">done_all</span>
+                Accept All
+             </button>
+          </div>
+
           <button 
             onClick={onSave}
             className="group flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary-dark active:scale-95"
