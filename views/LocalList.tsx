@@ -4,6 +4,8 @@ import ContextSwitcher from '../components/ContextSwitcher';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import StatusDropdown from '../components/StatusDropdown';
 import StatusChangeModal from '../components/StatusChangeModal';
+import ActionButtons from '../components/ActionButtons';
+import Tooltip from '../components/Tooltip';
 
 interface Props {
   onNavigate: (view: ViewState) => void;
@@ -88,13 +90,15 @@ const LocalList: React.FC<Props> = ({ onNavigate }) => {
             Manage local content and translations for the <span className="font-bold text-slate-900">Taiwan</span> region.
           </p>
         </div>
-        <button 
-          onClick={() => onNavigate('CREATE')}
-          className="group flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-dark hover:shadow-primary/30 active:scale-95 whitespace-nowrap"
-        >
-          <span className="material-symbols-outlined text-[20px]">add</span>
-          Create Page (Local)
-        </button>
+        <Tooltip content="Create a new local page">
+          <button 
+            onClick={() => onNavigate('CREATE')}
+            className="group flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-dark hover:shadow-primary/30 active:scale-95 whitespace-nowrap"
+          >
+            <span className="material-symbols-outlined text-[20px]">add</span>
+            Create Page (Local)
+          </button>
+        </Tooltip>
       </div>
 
       <div className="flex flex-col gap-6 mt-2">
@@ -106,13 +110,15 @@ const LocalList: React.FC<Props> = ({ onNavigate }) => {
               <span className="text-sm font-bold tracking-wide">Taiwan Pages</span>
               <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-extrabold text-primary">{processedData.length}</span>
             </button>
-            <button 
-              onClick={() => onNavigate('RECYCLE_BIN')}
-              className="group flex items-center gap-2 pb-4 text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[20px]">delete</span>
-              <span className="text-sm font-bold tracking-wide">Recycle Bin</span>
-            </button>
+            <Tooltip content="View deleted pages">
+              <button 
+                onClick={() => onNavigate('RECYCLE_BIN')}
+                className="group flex items-center gap-2 pb-4 text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">delete</span>
+                <span className="text-sm font-bold tracking-wide">Recycle Bin</span>
+              </button>
+            </Tooltip>
           </div>
         </div>
 
@@ -134,15 +140,17 @@ const LocalList: React.FC<Props> = ({ onNavigate }) => {
           <div className="flex w-full sm:w-auto items-center gap-3 relative z-30">
             {/* Filter Dropdown */}
             <div className="relative flex-1 sm:flex-none">
-             <button 
-                onClick={() => toggleDropdown('filter')}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors ${activeDropdown === 'filter' ? 'bg-slate-50 border-slate-300 text-slate-900' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
-             >
-              <span className="material-symbols-outlined text-[20px]">filter_list</span>
-              Filter
-               {filterType !== 'All' && <span className="ml-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px]">{filterType}</span>}
-              <span className={`material-symbols-outlined text-[16px] transition-transform ${activeDropdown === 'filter' ? 'rotate-180' : ''}`}>expand_more</span>
-            </button>
+             <Tooltip content="Filter pages by sync status">
+                <button 
+                  onClick={() => toggleDropdown('filter')}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors ${activeDropdown === 'filter' ? 'bg-slate-50 border-slate-300 text-slate-900' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+               >
+                <span className="material-symbols-outlined text-[20px]">filter_list</span>
+                Filter
+                 {filterType !== 'All' && <span className="ml-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px]">{filterType}</span>}
+                <span className={`material-symbols-outlined text-[16px] transition-transform ${activeDropdown === 'filter' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+             </Tooltip>
             
             {activeDropdown === 'filter' && (
                 <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl ring-1 ring-slate-900/5 z-50 animate-in fade-in zoom-in-95 duration-100">
@@ -163,14 +171,16 @@ const LocalList: React.FC<Props> = ({ onNavigate }) => {
 
             {/* Sort Dropdown */}
             <div className="relative flex-1 sm:flex-none">
-             <button 
-                onClick={() => toggleDropdown('sort')}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors ${activeDropdown === 'sort' ? 'bg-slate-50 border-slate-300 text-slate-900' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
-             >
-              <span className="material-symbols-outlined text-[20px]">sort</span>
-              Sort
-              <span className={`material-symbols-outlined text-[16px] transition-transform ${activeDropdown === 'sort' ? 'rotate-180' : ''}`}>expand_more</span>
-            </button>
+             <Tooltip content="Sort pages">
+                <button 
+                  onClick={() => toggleDropdown('sort')}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors ${activeDropdown === 'sort' ? 'bg-slate-50 border-slate-300 text-slate-900' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+               >
+                <span className="material-symbols-outlined text-[20px]">sort</span>
+                Sort
+                <span className={`material-symbols-outlined text-[16px] transition-transform ${activeDropdown === 'sort' ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+             </Tooltip>
 
             {activeDropdown === 'sort' && (
                 <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl ring-1 ring-slate-900/5 z-50 animate-in fade-in zoom-in-95 duration-100">
@@ -215,39 +225,19 @@ const LocalList: React.FC<Props> = ({ onNavigate }) => {
                   <React.Fragment key={item.id}>
                     <tr className={`group hover:bg-slate-50 transition-colors ${expandedRowId === item.id ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}>
                       <td className="whitespace-nowrap px-6 py-5">
-                        <div className="flex items-center justify-start gap-1 relative">
-                          <button 
-                            onClick={() => onNavigate('EDITOR_LOCAL')}
-                            className="rounded-lg p-2 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors" title="Edit"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">edit</span>
-                          </button>
-                          <button 
-                            onClick={() => setItemToDelete(item.id)}
-                            className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors" title="Move to Trash"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">delete</span>
-                          </button>
-                          {item.source !== 'Local' && (
-                            <button 
-                              onClick={() => onNavigate('COMPARE')}
-                              className="rounded-lg p-2 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors" title="Compare with Global"
-                            >
-                              <span className="material-symbols-outlined text-[20px]">difference</span>
-                            </button>
-                          )}
-                          
-                          {/* Settings Button - Now toggles Expansion */}
-                          <div className="relative">
-                            <button 
-                              onClick={() => toggleRow(item.id)}
-                              className={`rounded-lg p-2 transition-colors ${expandedRowId === item.id ? 'bg-slate-100 text-slate-700' : 'text-slate-500 hover:bg-slate-100'}`} 
-                              title="Settings & Details"
-                            >
-                              <span className="material-symbols-outlined text-[20px]">settings</span>
-                            </button>
-                          </div>
-                        </div>
+                        <ActionButtons
+                          onEdit={() => onNavigate('EDITOR_LOCAL')}
+                          onDelete={() => setItemToDelete(item.id)}
+                          onCompare={item.source !== 'Local' ? () => onNavigate('COMPARE') : undefined}
+                          onSettings={() => toggleRow(item.id)}
+                          isExpanded={expandedRowId === item.id}
+                          tooltips={{
+                            edit: "Edit Local Content",
+                            delete: "Move to Trash",
+                            compare: "Compare with Global",
+                            settings: "Page Settings"
+                          }}
+                        />
                       </td>
                       <td className="whitespace-nowrap px-6 py-5">
                         <div>

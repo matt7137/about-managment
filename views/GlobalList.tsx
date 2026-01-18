@@ -4,6 +4,8 @@ import ContextSwitcher from '../components/ContextSwitcher';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import StatusDropdown from '../components/StatusDropdown';
 import StatusChangeModal from '../components/StatusChangeModal';
+import ActionButtons from '../components/ActionButtons';
+import Tooltip from '../components/Tooltip';
 
 interface Props {
   onNavigate: (view: ViewState) => void;
@@ -85,13 +87,15 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
             Manage and localise your company's mission, history, and team pages.
           </p>
         </div>
-        <button 
-          onClick={() => onNavigate('CREATE')}
-          className="group flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-dark hover:shadow-primary/30 active:scale-95 whitespace-nowrap"
-        >
-          <span className="material-symbols-outlined text-[20px]">add</span>
-          Create Page (Global)
-        </button>
+        <Tooltip content="Create a new global page">
+          <button 
+            onClick={() => onNavigate('CREATE')}
+            className="group flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-dark hover:shadow-primary/30 active:scale-95 whitespace-nowrap"
+          >
+            <span className="material-symbols-outlined text-[20px]">add</span>
+            Create Page (Global)
+          </button>
+        </Tooltip>
       </div>
 
       <div className="flex flex-col gap-6 mt-2">
@@ -103,13 +107,15 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
               <span className="text-sm font-bold tracking-wide">Active Content</span>
               <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-extrabold text-primary">{processedData.length}</span>
             </button>
-            <button 
-              onClick={() => onNavigate('RECYCLE_BIN')}
-              className="group flex items-center gap-2 pb-4 text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[20px]">delete</span>
-              <span className="text-sm font-bold tracking-wide">Recycle Bin</span>
-            </button>
+            <Tooltip content="View deleted pages">
+              <button 
+                onClick={() => onNavigate('RECYCLE_BIN')}
+                className="group flex items-center gap-2 pb-4 text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">delete</span>
+                <span className="text-sm font-bold tracking-wide">Recycle Bin</span>
+              </button>
+            </Tooltip>
           </div>
         </div>
 
@@ -131,15 +137,17 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
           <div className="flex w-full sm:w-auto items-center gap-3 relative z-30">
             {/* Filter Dropdown */}
             <div className="relative flex-1 sm:flex-none">
-              <button 
-                onClick={() => toggleDropdown('filter')}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold shadow-sm transition-colors ${activeDropdown === 'filter' ? 'bg-primary/10 border-primary text-primary ring-2 ring-primary/20' : 'bg-primary/5 border-primary/30 text-primary hover:bg-primary/10'}`}
-              >
-                <span className="material-symbols-outlined text-[20px]">filter_list</span>
-                Filter
-                {filterStatus !== 'All' && <span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px]">{filterStatus}</span>}
-                <span className={`material-symbols-outlined text-[18px] transition-transform ${activeDropdown === 'filter' ? 'rotate-180' : ''}`}>expand_less</span>
-              </button>
+              <Tooltip content="Filter pages by status">
+                <button 
+                  onClick={() => toggleDropdown('filter')}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold shadow-sm transition-colors ${activeDropdown === 'filter' ? 'bg-primary/10 border-primary text-primary ring-2 ring-primary/20' : 'bg-primary/5 border-primary/30 text-primary hover:bg-primary/10'}`}
+                >
+                  <span className="material-symbols-outlined text-[20px]">filter_list</span>
+                  Filter
+                  {filterStatus !== 'All' && <span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px]">{filterStatus}</span>}
+                  <span className={`material-symbols-outlined text-[18px] transition-transform ${activeDropdown === 'filter' ? 'rotate-180' : ''}`}>expand_less</span>
+                </button>
+              </Tooltip>
               
               {activeDropdown === 'filter' && (
                 <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl ring-1 ring-slate-900/5 z-50 animate-in fade-in zoom-in-95 duration-100">
@@ -165,14 +173,16 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
 
             {/* Sort Dropdown */}
             <div className="relative flex-1 sm:flex-none">
-              <button 
-                onClick={() => toggleDropdown('sort')}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold shadow-sm transition-colors ${activeDropdown === 'sort' ? 'bg-primary/10 border-primary text-primary ring-2 ring-primary/20' : 'bg-primary/5 border-primary/30 text-primary hover:bg-primary/10'}`}
-              >
-                <span className="material-symbols-outlined text-[20px]">sort</span>
-                Sort
-                <span className={`material-symbols-outlined text-[18px] transition-transform ${activeDropdown === 'sort' ? 'rotate-180' : ''}`}>expand_less</span>
-              </button>
+              <Tooltip content="Sort pages">
+                <button 
+                  onClick={() => toggleDropdown('sort')}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold shadow-sm transition-colors ${activeDropdown === 'sort' ? 'bg-primary/10 border-primary text-primary ring-2 ring-primary/20' : 'bg-primary/5 border-primary/30 text-primary hover:bg-primary/10'}`}
+                >
+                  <span className="material-symbols-outlined text-[20px]">sort</span>
+                  Sort
+                  <span className={`material-symbols-outlined text-[18px] transition-transform ${activeDropdown === 'sort' ? 'rotate-180' : ''}`}>expand_less</span>
+                </button>
+              </Tooltip>
 
               {activeDropdown === 'sort' && (
                 <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl ring-1 ring-slate-900/5 z-50 animate-in fade-in zoom-in-95 duration-100">
@@ -218,32 +228,17 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                   <React.Fragment key={item.id}>
                     <tr className={`group hover:bg-slate-50 transition-colors ${expandedRowId === item.id ? 'bg-slate-50 border-l-[3px] border-primary' : ''}`}>
                       <td className="whitespace-nowrap px-6 py-5">
-                        <div className="flex items-center justify-start gap-1 relative">
-                          <button 
-                            onClick={() => onNavigate('EDITOR_GLOBAL')}
-                            className="rounded-lg p-2 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors" title="Edit"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">edit</span>
-                          </button>
-                          <button 
-                            onClick={() => setItemToDelete(item.id)}
-                            className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors" 
-                            title="Move to Trash"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">delete</span>
-                          </button>
-                          
-                          {/* Main Row Settings Button - Now toggles Expansion */}
-                          <div className="relative">
-                            <button 
-                              onClick={() => toggleRow(item.id)}
-                              className={`rounded-lg p-2 transition-colors ${expandedRowId === item.id ? 'bg-primary text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}`} 
-                              title="Settings & Local Availability"
-                            >
-                              <span className={`material-symbols-outlined text-[20px] ${expandedRowId === item.id ? 'icon-filled' : ''}`}>settings</span>
-                            </button>
-                          </div>
-                        </div>
+                        <ActionButtons
+                          onEdit={() => onNavigate('EDITOR_GLOBAL')}
+                          onDelete={() => setItemToDelete(item.id)}
+                          onSettings={() => toggleRow(item.id)}
+                          isExpanded={expandedRowId === item.id}
+                          tooltips={{
+                            edit: "Edit Global Content",
+                            delete: "Move to Trash",
+                            settings: "Configure Page & Regions"
+                          }}
+                        />
                       </td>
                       <td className="whitespace-nowrap px-6 py-5">
                         <div>
@@ -324,21 +319,31 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                                         <div className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">United States</div>
                                       </div>
                                       <div className="flex items-center gap-1">
-                                         <button className="flex items-center gap-1 rounded bg-amber-50 px-1.5 py-1 text-amber-700 border border-amber-100" title="AI Translated">
-                                          <span className="material-symbols-outlined text-[16px] text-amber-500 icon-filled">auto_awesome</span>
-                                          <span className="text-[10px] font-bold">AI</span>
-                                        </button>
-                                        <button className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors">
-                                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                                        </button>
+                                        <Tooltip content="AI Translated">
+                                          <button className="flex items-center gap-1 rounded bg-amber-50 px-1.5 py-1 text-amber-700 border border-amber-100">
+                                            <span className="material-symbols-outlined text-[16px] text-amber-500 icon-filled">auto_awesome</span>
+                                            <span className="text-[10px] font-bold">AI</span>
+                                          </button>
+                                        </Tooltip>
+                                        
+                                        <Tooltip content="Edit Local Content">
+                                          <button 
+                                            className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors"
+                                          >
+                                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                                          </button>
+                                        </Tooltip>
+
                                         {/* Nested Settings for US */}
                                         <div className="relative">
-                                          <button 
-                                            onClick={(e) => toggleLocalCardSettings(e, 'us')}
-                                            className={`rounded p-1 transition-colors ${openLocalCardSettingsId === 'us' ? 'bg-primary/10 text-primary' : 'text-slate-300 group-hover:text-primary hover:bg-primary/10'}`}
-                                          >
-                                            <span className="material-symbols-outlined text-[18px]">settings</span>
-                                          </button>
+                                          <Tooltip content="Regional Settings">
+                                            <button 
+                                              onClick={(e) => toggleLocalCardSettings(e, 'us')}
+                                              className={`rounded p-1 transition-colors ${openLocalCardSettingsId === 'us' ? 'bg-primary/10 text-primary' : 'text-slate-300 group-hover:text-primary hover:bg-primary/10'}`}
+                                            >
+                                              <span className="material-symbols-outlined text-[18px]">settings</span>
+                                            </button>
+                                          </Tooltip>
                                           {openLocalCardSettingsId === 'us' && (
                                               <div className="absolute right-0 top-6 z-[120] w-48 rounded-lg border border-slate-100 bg-white p-1 shadow-lg ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-100">
                                                 <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
@@ -360,6 +365,7 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                                       <span className="text-[10px] text-slate-500">Updated 2h ago</span>
                                     </div>
                                   </div>
+                                  
                                   {/* Taiwan Card */}
                                   <div onClick={() => onNavigate('LOCAL_LIST')} className="flex flex-col p-3 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group border-primary/20 ring-1 ring-primary/10 relative">
                                     <div className="flex items-start justify-between mb-2">
@@ -368,17 +374,24 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                                         <div className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">Taiwan</div>
                                       </div>
                                       <div className="flex items-center gap-1">
-                                        <button className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors">
-                                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                                        </button>
+                                        <Tooltip content="Edit Local Content">
+                                          <button 
+                                            className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors"
+                                          >
+                                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                                          </button>
+                                        </Tooltip>
+
                                         {/* Nested Settings for TW */}
                                         <div className="relative">
-                                          <button 
-                                            onClick={(e) => toggleLocalCardSettings(e, 'tw')}
-                                            className={`rounded p-1 transition-colors ${openLocalCardSettingsId === 'tw' ? 'bg-primary/10 text-primary' : 'text-slate-300 group-hover:text-primary hover:bg-primary/10'}`}
-                                          >
-                                            <span className="material-symbols-outlined text-[18px]">settings</span>
-                                          </button>
+                                          <Tooltip content="Regional Settings">
+                                            <button 
+                                              onClick={(e) => toggleLocalCardSettings(e, 'tw')}
+                                              className={`rounded p-1 transition-colors ${openLocalCardSettingsId === 'tw' ? 'bg-primary/10 text-primary' : 'text-slate-300 group-hover:text-primary hover:bg-primary/10'}`}
+                                            >
+                                              <span className="material-symbols-outlined text-[18px]">settings</span>
+                                            </button>
+                                          </Tooltip>
                                           {openLocalCardSettingsId === 'tw' && (
                                               <div className="absolute right-0 top-6 z-[120] w-48 rounded-lg border border-slate-100 bg-white p-1 shadow-lg ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-100">
                                                 <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
