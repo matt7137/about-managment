@@ -335,17 +335,29 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
             <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-primary">visibility</span>
-              Publishing
+              <span className="material-symbols-outlined text-[18px] text-primary">
+                {context ? 'info' : 'public'}
+              </span>
+              {context ? 'Page Info' : 'Global Settings'}
             </h3>
-            <div className="flex items-center justify-between mb-6 p-3 bg-background-light rounded-lg">
-              <span className="text-sm font-medium text-slate-700">Visible to Public</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" defaultChecked disabled={isReadOnly} />
-                <div className={`w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${isReadOnly ? 'opacity-50' : 'peer-checked:bg-primary'}`}></div>
-              </label>
-            </div>
-            <div className="space-y-4 pt-4 border-t border-slate-100">
+            
+            {/* Global Context: Allow Local Translation Switch */}
+            {!context && (
+                <div className="flex items-center justify-between mb-6 p-3 bg-background-light rounded-lg">
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium text-slate-700">
+                    Allow Local Translation
+                    </span>
+                    <span className="text-[11px] text-slate-500 leading-tight mt-0.5">Enable regions to translate this page</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" defaultChecked disabled={isReadOnly} />
+                    <div className={`w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${isReadOnly ? 'opacity-50' : 'peer-checked:bg-primary'}`}></div>
+                </label>
+                </div>
+            )}
+
+            <div className={`space-y-4 ${!context ? 'pt-4 border-t border-slate-100' : ''}`}>
                <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Last updated</label>
                 <div className="text-sm text-slate-900 flex items-center gap-2">
@@ -353,6 +365,17 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
                   Oct 24, 2023 at 4:30 PM
                 </div>
               </div>
+              
+               {/* Local Context: Display Status instead of toggle */}
+               {context && (
+                  <div>
+                     <label className="block text-xs font-medium text-slate-500 mb-1.5">Status</label>
+                     <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${isReadOnly ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-yellow-50 text-yellow-800 ring-yellow-600/20'}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${isReadOnly ? 'bg-emerald-500' : 'bg-yellow-500'}`}></span>
+                        {isReadOnly ? 'Published' : 'Draft'}
+                     </div>
+                  </div>
+               )}
             </div>
           </div>
 
