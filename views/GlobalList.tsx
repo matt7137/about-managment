@@ -8,10 +8,23 @@ import ActionButtons from '../components/ActionButtons';
 import Tooltip from '../components/Tooltip';
 import SeoSettingsModal from '../components/SeoSettingsModal';
 import HistoryModal from '../components/HistoryModal';
+import AddCountryModal from '../components/AddCountryModal';
 
 interface Props {
   onNavigate: (view: ViewState) => void;
   onEdit: (view: ViewState, item: PageItem) => void;
+}
+
+// Helper interface for local regions within global items
+interface LocalRegion {
+  id: string;
+  code: string;
+  name: string;
+  status: 'Published' | 'Draft';
+  lastUpdated: string;
+  sourceType: 'ai' | 'copy' | 'empty' | 'manual';
+  colorClass: string;
+  textClass: string;
 }
 
 const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
@@ -28,6 +41,10 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [activeHistoryItem, setActiveHistoryItem] = useState<{id: string, title: string} | null>(null);
 
+  // Add Country Modal State
+  const [addCountryModalOpen, setAddCountryModalOpen] = useState(false);
+  const [activePageForAdd, setActivePageForAdd] = useState<string | null>(null);
+
   // Filter & Sort State
   const [filterStatus, setFilterStatus] = useState<'All' | 'Published' | 'Draft'>('All');
   const [sortOption, setSortOption] = useState<'Last Modified' | 'Alphabetical' | 'Status'>('Last Modified');
@@ -38,6 +55,20 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
     title: string;
     newStatus: 'Published' | 'Draft';
   } | null>(null);
+
+  // Dynamic Regions State (initialized with mock data for ID '1')
+  const [pageRegions, setPageRegions] = useState<Record<string, LocalRegion[]>>({
+    '1': [
+      { 
+        id: 'us', code: 'US', name: 'United States', status: 'Published', lastUpdated: 'Updated 2h ago', 
+        sourceType: 'ai', colorClass: 'bg-blue-100', textClass: 'text-blue-700' 
+      },
+      { 
+        id: 'tw', code: 'TW', name: 'Taiwan', status: 'Draft', lastUpdated: 'Updated 3d ago', 
+        sourceType: 'manual', colorClass: 'bg-red-50 border border-red-100', textClass: 'text-red-600' 
+      }
+    ]
+  });
 
   // Derived Data (Filter & Sort)
   const processedData = useMemo(() => {
@@ -94,6 +125,38 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
   const openHistory = (item: PageItem, context?: string) => {
     setActiveHistoryItem({ id: item.id, title: context ? `${item.title} (${context})` : item.title });
     setHistoryModalOpen(true);
+  };
+
+  const handleAddCountryClick = (pageId: string) => {
+    setActivePageForAdd(pageId);
+    setAddCountryModalOpen(true);
+  };
+
+  const handleAddCountryConfirm = (data: { countryCode: string; countryName: string; method: 'ai' | 'copy' }) => {
+    if (!activePageForAdd) return;
+
+    const newRegion: LocalRegion = {
+      id: `${activePageForAdd}-${data.countryCode.toLowerCase()}`,
+      code: data.countryCode,
+      name: data.countryName,
+      status: 'Draft',
+      lastUpdated: 'Just now',
+      sourceType: data.method,
+      colorClass: 'bg-slate-100', // Default neutral
+      textClass: 'text-slate-700'
+    };
+
+    // Helper to get color styles based on code (simplified mock)
+    if (data.countryCode === 'DE') { newRegion.colorClass = 'bg-yellow-100'; newRegion.textClass = 'text-yellow-800'; }
+    if (data.countryCode === 'FR') { newRegion.colorClass = 'bg-blue-50 border border-blue-100'; newRegion.textClass = 'text-blue-700'; }
+    if (data.countryCode === 'JP') { newRegion.colorClass = 'bg-red-50 border border-red-100'; newRegion.textClass = 'text-red-700'; }
+
+    setPageRegions(prev => ({
+      ...prev,
+      [activePageForAdd]: [...(prev[activePageForAdd] || []), newRegion]
+    }));
+    
+    setAddCountryModalOpen(false);
   };
 
   return (
@@ -325,138 +388,99 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
                                     <span className="material-symbols-outlined text-[18px]">public</span>
                                     Local Availability
                                   </h4>
-                                  <button className="text-xs font-bold text-primary hover:text-primary-dark transition-colors flex items-center gap-1 hover:bg-primary/5 px-2 py-1 rounded">
+                                  <button 
+                                    onClick={() => handleAddCountryClick(item.id)}
+                                    className="text-xs font-bold text-primary hover:text-primary-dark transition-colors flex items-center gap-1 hover:bg-primary/5 px-2 py-1 rounded"
+                                  >
                                     <span className="material-symbols-outlined text-[16px]">add_circle</span>
                                     Add Country
                                   </button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {/* US Card */}
-                                  <div className="flex flex-col p-3 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group relative">
-                                    <div className="flex items-start justify-between mb-2">
-                                      <div className="flex items-center gap-2.5">
-                                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">US</div>
-                                        <div className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">United States</div>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <Tooltip content="AI Translated">
-                                          <button className="flex items-center gap-1 rounded bg-amber-50 px-1.5 py-1 text-amber-700 border border-amber-100">
-                                            <span className="material-symbols-outlined text-[16px] text-amber-500 icon-filled">auto_awesome</span>
-                                            <span className="text-[10px] font-bold">AI</span>
-                                          </button>
-                                        </Tooltip>
-                                        
-                                        <Tooltip content="Edit Local Content">
-                                          <button 
-                                            className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors"
-                                          >
-                                            <span className="material-symbols-outlined text-[18px]">edit</span>
-                                          </button>
-                                        </Tooltip>
-
-                                        {/* Nested Settings for US */}
-                                        <div className="relative">
-                                          <Tooltip content="Regional Settings">
+                                  {/* Dynamic Regions Render */}
+                                  {pageRegions[item.id]?.map((region) => (
+                                    <div 
+                                      key={region.id}
+                                      onClick={() => onNavigate('LOCAL_LIST')}
+                                      className="flex flex-col p-3 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group relative"
+                                    >
+                                      <div className="flex items-start justify-between mb-2">
+                                        <div className="flex items-center gap-2.5">
+                                          <div className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold ${region.colorClass} ${region.textClass}`}>
+                                            {region.code}
+                                          </div>
+                                          <div className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">{region.name}</div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          {(region.sourceType === 'ai' || region.sourceType === 'copy') && (
+                                            <Tooltip content={region.sourceType === 'ai' ? "AI Translated" : "Cloned from Global"}>
+                                              <button className={`flex items-center gap-1 rounded px-1.5 py-1 text-[10px] font-bold border ${region.sourceType === 'ai' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                                <span className="material-symbols-outlined text-[16px] icon-filled">{region.sourceType === 'ai' ? 'auto_awesome' : 'content_copy'}</span>
+                                                {region.sourceType === 'ai' ? 'AI' : 'Copy'}
+                                              </button>
+                                            </Tooltip>
+                                          )}
+                                          
+                                          <Tooltip content="Edit Local Content">
                                             <button 
-                                              onClick={(e) => toggleLocalCardSettings(e, 'us')}
-                                              className={`rounded p-1 transition-colors ${openLocalCardSettingsId === 'us' ? 'bg-primary/10 text-primary' : 'text-slate-300 group-hover:text-primary hover:bg-primary/10'}`}
+                                              className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors"
                                             >
-                                              <span className="material-symbols-outlined text-[18px]">settings</span>
+                                              <span className="material-symbols-outlined text-[18px]">edit</span>
                                             </button>
                                           </Tooltip>
-                                          {openLocalCardSettingsId === 'us' && (
-                                              <div className="absolute right-0 top-6 z-[120] w-48 rounded-lg border border-slate-100 bg-white p-1 shadow-lg ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-100">
-                                                <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                                                  <span className="material-symbols-outlined text-[16px]">edit</span> Edit Content
-                                                </button>
-                                                 <button 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        openHistory(item, 'United States');
-                                                        setOpenLocalCardSettingsId(null);
-                                                    }}
-                                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                                                >
-                                                  <span className="material-symbols-outlined text-[16px]">history</span> View History
-                                                </button>
-                                                 <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
-                                                  <span className="material-symbols-outlined text-[16px]">link_off</span> Unlink
-                                                </button>
-                                              </div>
-                                          )}
+
+                                          {/* Nested Settings for Region */}
+                                          <div className="relative">
+                                            <Tooltip content="Regional Settings">
+                                              <button 
+                                                onClick={(e) => toggleLocalCardSettings(e, region.id)}
+                                                className={`rounded p-1 transition-colors ${openLocalCardSettingsId === region.id ? 'bg-primary/10 text-primary' : 'text-slate-300 group-hover:text-primary hover:bg-primary/10'}`}
+                                              >
+                                                <span className="material-symbols-outlined text-[18px]">settings</span>
+                                              </button>
+                                            </Tooltip>
+                                            {openLocalCardSettingsId === region.id && (
+                                                <div className="absolute right-0 top-6 z-[120] w-48 rounded-lg border border-slate-100 bg-white p-1 shadow-lg ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-100">
+                                                  <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                                                    <span className="material-symbols-outlined text-[16px]">edit</span> Edit Content
+                                                  </button>
+                                                  <button 
+                                                      onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          openHistory(item, region.name);
+                                                          setOpenLocalCardSettingsId(null);
+                                                      }}
+                                                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                                                  >
+                                                    <span className="material-symbols-outlined text-[16px]">history</span> View History
+                                                  </button>
+                                                  <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
+                                                    <span className="material-symbols-outlined text-[16px]">link_off</span> Unlink / Delete
+                                                  </button>
+                                                </div>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
+                                      <div className="flex items-center justify-between mt-auto">
+                                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset ${region.status === 'Published' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-yellow-50 text-yellow-800 ring-yellow-600/20'}`}>
+                                          {region.status}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500">{region.lastUpdated}</span>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center justify-between mt-auto">
-                                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Published</span>
-                                      <span className="text-[10px] text-slate-500">Updated 2h ago</span>
-                                    </div>
-                                  </div>
+                                  ))}
                                   
-                                  {/* Taiwan Card */}
-                                  <div onClick={() => onNavigate('LOCAL_LIST')} className="flex flex-col p-3 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group border-primary/20 ring-1 ring-primary/10 relative">
-                                    <div className="flex items-start justify-between mb-2">
-                                      <div className="flex items-center gap-2.5">
-                                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-50 text-[10px] font-bold text-red-600 border border-red-100">TW</div>
-                                        <div className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">Taiwan</div>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <Tooltip content="Translate with AI">
-                                          <button 
-                                            onClick={(e) => { e.stopPropagation(); /* Add translation logic here */ }}
-                                            className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-1 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors"
-                                          >
-                                            <span className="material-symbols-outlined text-[16px] text-slate-500">auto_awesome</span>
-                                            <span className="text-[10px] font-bold">AI</span>
-                                          </button>
-                                        </Tooltip>
-
-                                        <Tooltip content="Edit Local Content">
-                                          <button 
-                                            className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors"
-                                          >
-                                            <span className="material-symbols-outlined text-[18px]">edit</span>
-                                          </button>
-                                        </Tooltip>
-
-                                        {/* Nested Settings for TW */}
-                                        <div className="relative">
-                                          <Tooltip content="Regional Settings">
-                                            <button 
-                                              onClick={(e) => toggleLocalCardSettings(e, 'tw')}
-                                              className={`rounded p-1 transition-colors ${openLocalCardSettingsId === 'tw' ? 'bg-primary/10 text-primary' : 'text-slate-300 group-hover:text-primary hover:bg-primary/10'}`}
-                                            >
-                                              <span className="material-symbols-outlined text-[18px]">settings</span>
-                                            </button>
-                                          </Tooltip>
-                                          {openLocalCardSettingsId === 'tw' && (
-                                              <div className="absolute right-0 top-6 z-[120] w-48 rounded-lg border border-slate-100 bg-white p-1 shadow-lg ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-100">
-                                                <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                                                  <span className="material-symbols-outlined text-[16px]">edit</span> Edit Content
-                                                </button>
-                                                 <button 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        openHistory(item, 'Taiwan');
-                                                        setOpenLocalCardSettingsId(null);
-                                                    }}
-                                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                                                 >
-                                                  <span className="material-symbols-outlined text-[16px]">history</span> View History
-                                                </button>
-                                                 <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
-                                                  <span className="material-symbols-outlined text-[16px]">delete</span> Delete
-                                                </button>
-                                              </div>
-                                          )}
-                                        </div>
-                                      </div>
+                                  {/* Empty State if no regions */}
+                                  {(!pageRegions[item.id] || pageRegions[item.id].length === 0) && (
+                                    <div 
+                                      onClick={() => handleAddCountryClick(item.id)}
+                                      className="flex flex-col items-center justify-center p-6 rounded-lg border-2 border-dashed border-slate-200 hover:border-primary/50 hover:bg-slate-50 transition-all cursor-pointer text-slate-400 hover:text-primary gap-2"
+                                    >
+                                      <span className="material-symbols-outlined text-[24px]">add_location_alt</span>
+                                      <span className="text-sm font-bold">Add First Region</span>
                                     </div>
-                                    <div className="flex items-center justify-between mt-auto">
-                                      <span className="inline-flex items-center gap-1 rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] font-bold text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Draft</span>
-                                      <span className="text-[10px] text-slate-500">Updated 3d ago</span>
-                                    </div>
-                                  </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -523,6 +547,13 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
             console.log(`Restoring version ${version} for ${activeHistoryItem?.title}`);
             setHistoryModalOpen(false);
         }}
+      />
+
+      {/* Add Country Modal */}
+      <AddCountryModal 
+        isOpen={addCountryModalOpen}
+        onClose={() => setAddCountryModalOpen(false)}
+        onConfirm={handleAddCountryConfirm}
       />
     </main>
   );
