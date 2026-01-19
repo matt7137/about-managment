@@ -5,13 +5,15 @@ interface Props {
   onEdit: () => void;
   onDelete: () => void;
   onCompare?: () => void;
-  onSettings: () => void;
+  onPreview?: () => void;
+  onSettings?: () => void;
   isExpanded: boolean;
   tooltips: {
     edit: string;
     delete: string;
     compare?: string;
-    settings: string;
+    preview?: string;
+    settings?: string;
   };
 }
 
@@ -19,6 +21,7 @@ const ActionButtons: React.FC<Props> = ({
   onEdit, 
   onDelete, 
   onCompare, 
+  onPreview,
   onSettings, 
   isExpanded, 
   tooltips 
@@ -33,6 +36,17 @@ const ActionButtons: React.FC<Props> = ({
           <span className="material-symbols-outlined text-[20px] group-active:scale-95 transition-transform">edit</span>
         </button>
       </Tooltip>
+
+      {onPreview && tooltips.preview && (
+        <Tooltip content={tooltips.preview}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onPreview(); }}
+            className="rounded-lg p-2 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors group"
+          >
+            <span className="material-symbols-outlined text-[20px] group-active:scale-95 transition-transform">visibility</span>
+          </button>
+        </Tooltip>
+      )}
       
       <Tooltip content={tooltips.delete}>
         <button 
@@ -54,20 +68,22 @@ const ActionButtons: React.FC<Props> = ({
         </Tooltip>
       )}
       
-      <div className="relative">
-        <Tooltip content={tooltips.settings}>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onSettings(); }}
-            className={`rounded-lg p-2 transition-colors group ${
-              isExpanded 
-                ? 'bg-primary text-white shadow-md shadow-primary/20' 
-                : 'text-slate-500 hover:bg-slate-100'
-            }`}
-          >
-            <span className={`material-symbols-outlined text-[20px] group-active:scale-95 transition-transform ${isExpanded ? 'icon-filled' : ''}`}>settings</span>
-          </button>
-        </Tooltip>
-      </div>
+      {onSettings && tooltips.settings && (
+        <div className="relative">
+          <Tooltip content={tooltips.settings}>
+            <button 
+              onClick={(e) => { e.stopPropagation(); onSettings(); }}
+              className={`rounded-lg p-2 transition-colors group ${
+                isExpanded 
+                  ? 'bg-primary text-white shadow-md shadow-primary/20' 
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <span className={`material-symbols-outlined text-[20px] group-active:scale-95 transition-transform ${isExpanded ? 'icon-filled' : ''}`}>settings</span>
+            </button>
+          </Tooltip>
+        </div>
+      )}
     </div>
   );
 };

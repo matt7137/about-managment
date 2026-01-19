@@ -14,6 +14,10 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
     type: 'single' | 'bulk' | 'empty' | null;
   }>({ isOpen: false, type: null });
 
+  // Filter State
+  const [originFilter, setOriginFilter] = useState('All Countries');
+  const [isOriginDropdownOpen, setIsOriginDropdownOpen] = useState(false);
+
   // Selection State
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
@@ -152,16 +156,47 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
         {/* Filters */}
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-            <div className="flex items-center gap-3 w-full sm:w-auto bg-white px-4 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+            {/* Origin Filter Dropdown (Styled like ContextSwitcher) */}
+            <div className="relative z-40 flex items-center gap-3 w-full sm:w-auto bg-white px-4 py-1.5 rounded-lg border border-slate-200 shadow-sm ring-1 ring-primary/20">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Filter Origin:</span>
-              <div className="relative w-full">
-                <select className="block w-full border-0 bg-transparent py-2 pl-0 pr-8 text-sm font-bold text-primary focus:ring-0 cursor-pointer">
-                  <option selected>All Countries</option>
-                  <option>United States</option>
-                  <option>Taiwan</option>
-                </select>
+              <div className="relative w-full group">
+                <button 
+                  onClick={() => setIsOriginDropdownOpen(!isOriginDropdownOpen)}
+                  className="flex w-full min-w-[140px] items-center justify-between gap-2 border-0 bg-transparent py-2 pl-0 pr-0 text-sm font-bold text-primary focus:outline-none cursor-pointer"
+                >
+                  <span>{originFilter}</span>
+                  <span className={`material-symbols-outlined text-[20px] transition-transform ${isOriginDropdownOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                </button>
+                
+                {isOriginDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-50" onClick={() => setIsOriginDropdownOpen(false)} />
+                    <div className="absolute left-[-60px] top-[calc(100%+14px)] w-[240px] rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl ring-1 ring-slate-900/5 origin-top-left z-[60] animate-in fade-in zoom-in-95 duration-100">
+                      <div className="mb-1 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-50">Select Origin</div>
+                      
+                      {['All Countries', 'United States', 'Taiwan'].map(option => (
+                         <div 
+                           key={option}
+                           onClick={() => {
+                             setOriginFilter(option);
+                             setIsOriginDropdownOpen(false);
+                           }}
+                           className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm font-bold cursor-pointer mb-1 transition-colors ${
+                             originFilter === option 
+                               ? 'text-primary bg-primary/5' 
+                               : 'text-slate-900 hover:bg-slate-50'
+                           }`}
+                         >
+                           {option}
+                           {originFilter === option && <span className="material-symbols-outlined text-[18px]">check</span>}
+                         </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
+
              <div className="relative w-full sm:w-64 lg:w-80">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <span className="material-symbols-outlined text-slate-400 text-[20px]">search</span>

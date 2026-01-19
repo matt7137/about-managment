@@ -1,21 +1,27 @@
 import React, { useState, useMemo } from 'react';
-import { ViewState, MOCK_DATA_LOCAL } from '../types';
+import { ViewState, MOCK_DATA_LOCAL, PageItem } from '../types';
 import ContextSwitcher from '../components/ContextSwitcher';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import StatusDropdown from '../components/StatusDropdown';
 import StatusChangeModal from '../components/StatusChangeModal';
 import ActionButtons from '../components/ActionButtons';
 import Tooltip from '../components/Tooltip';
+import SeoSettingsModal from '../components/SeoSettingsModal';
 
 interface Props {
   onNavigate: (view: ViewState) => void;
+  onEdit: (view: ViewState, item: PageItem) => void;
 }
 
-const LocalList: React.FC<Props> = ({ onNavigate }) => {
+const LocalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
   const [activeDropdown, setActiveDropdown] = useState<'filter' | 'sort' | null>(null);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [isSyncPanelOpen, setIsSyncPanelOpen] = useState(true);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+  // SEO Modal State
+  const [seoModalOpen, setSeoModalOpen] = useState(false);
+  const [activeSeoItem, setActiveSeoItem] = useState<{id: string, title: string} | null>(null);
 
   // Filter & Sort State
   const [filterType, setFilterType] = useState<'All' | 'Synced' | 'Overridden' | 'Local'>('All');
@@ -76,6 +82,11 @@ const LocalList: React.FC<Props> = ({ onNavigate }) => {
   const confirmStatusChange = () => {
     console.log(`Changing status of ${statusToChange?.id} to ${statusToChange?.newStatus}`);
     setStatusToChange(null);
+  };
+
+  const openSeoSettings = (item: PageItem) => {
+    setActiveSeoItem({ id: item.id, title: item.title });
+    setSeoModalOpen(true);
   };
 
   return (
@@ -223,19 +234,21 @@ const LocalList: React.FC<Props> = ({ onNavigate }) => {
               <tbody className="divide-y divide-slate-100">
                 {processedData.length > 0 ? processedData.map((item) => (
                   <React.Fragment key={item.id}>
-                    <tr className={`group hover:bg-slate-50 transition-colors ${expandedRowId === item.id ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`}>
+                    <tr className={`group hover:bg-slate-50 transition-colors ${expandedRowId === item.id ? 'bg-slate-50 border-l-[3px] border-primary' : ''}`}>
                       <td className="whitespace-nowrap px-6 py-5">
                         <ActionButtons
-                          onEdit={() => onNavigate('EDITOR_LOCAL')}
+                          onEdit={() => onEdit('EDITOR_LOCAL', item)}
                           onDelete={() => setItemToDelete(item.id)}
                           onCompare={item.source !== 'Local' ? () => onNavigate('COMPARE') : undefined}
                           onSettings={() => toggleRow(item.id)}
+                          onPreview={() => console.log('Previewing item', item.id)}
                           isExpanded={expandedRowId === item.id}
                           tooltips={{
                             edit: "Edit Local Content",
                             delete: "Move to Trash",
                             compare: "Compare with Global",
-                            settings: "Page Settings"
+                            settings: "Page Settings",
+                            preview: "Preview Page"
                           }}
                         />
                       </td>
@@ -291,72 +304,79 @@ const LocalList: React.FC<Props> = ({ onNavigate }) => {
                       </td>
                     </tr>
                     {expandedRowId === item.id && (
-                       <tr className="bg-slate-50/50 shadow-inner animate-in fade-in zoom-in-[0.99] duration-200">
-                        <td className="px-6 py-4" colSpan={6}>
-                          <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4">
-                            
-                            {/* Local Actions Toolbar (Moved from Dropdown) */}
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                               <div className="flex gap-2">
-                                <button className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-primary transition-all shadow-sm">
-                                  <span className="material-symbols-outlined text-[18px]">link_off</span>
-                                  Unlink
-                                </button>
-                                <button className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-primary transition-all shadow-sm">
-                                  <span className="material-symbols-outlined text-[18px]">history</span>
-                                  Translation History
-                                </button>
-                                <button className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 hover:border-red-200 transition-all shadow-sm">
-                                  <span className="material-symbols-outlined text-[18px]">delete</span>
-                                  Delete Translation
-                                </button>
-                              </div>
+                       <tr className="bg-slate-50 border-b-2 border-slate-100 shadow-inner animate-in fade-in zoom-in-[0.99] duration-200">
+                        <td className="px-6 py-0" colSpan={6}>
+                           <div className="flex flex-col w-full py-6">
+                            {/* Page Configuration Section */}
+                            <div className="mb-6 px-4">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">tune</span>
+                                    Page Configuration
+                                </h4>
+                                <div className="flex flex-wrap gap-3">
+                                    <button 
+                                        onClick={() => openSeoSettings(item)}
+                                        className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all shadow-sm"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">travel_explore</span>
+                                        SEO Settings
+                                    </button>
+                                </div>
                             </div>
 
-                            {/* Sync Status Panel */}
-                            <div 
-                                className="flex items-center justify-between cursor-pointer select-none bg-slate-50 p-3 rounded-lg border border-slate-200/50 hover:border-slate-300 transition-colors"
-                                onClick={() => setIsSyncPanelOpen(!isSyncPanelOpen)}
-                            >
-                              <div className="flex items-center gap-4">
-                                <h4 className="text-sm font-bold text-slate-900">Sync Status</h4>
-                                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Up to date
-                                </span>
-                                <span className="text-xs text-slate-500">Last synced: 2 hours ago</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-slate-400">
-                                <span className="text-xs font-medium">Compare</span>
-                                <span className={`material-symbols-outlined text-[20px] transition-transform duration-200 ${isSyncPanelOpen ? 'rotate-180' : ''}`}>
-                                    expand_more
-                                </span>
-                              </div>
-                            </div>
-                            
-                            {isSyncPanelOpen && (
-                                <div className="flex items-start gap-4 animate-in slide-in-from-top-2 duration-200 px-2">
-                                  <div className="flex-1">
-                                      <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
-                                      <span className="material-symbols-outlined text-[16px]">public</span> Global Source (v14)
-                                      </div>
-                                      <p className="mt-1 text-sm text-slate-900 line-clamp-2">
-                                      Our company was founded in 1990 with a mission to innovate and lead the technology sector...
-                                      </p>
-                                  </div>
-                                  <div className="flex items-center justify-center self-center text-slate-400">
-                                      <span className="material-symbols-outlined">arrow_forward</span>
-                                  </div>
-                                  <div className="flex-1">
-                                      <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
-                                      <span className="material-symbols-outlined text-[16px]">translate</span> Taiwan Translation (v14)
-                                      </div>
-                                      <p className="mt-1 text-sm text-slate-900 line-clamp-2">
-                                      我們公司成立於1990年，其使命是創新並引領科技行業...
-                                      </p>
-                                  </div>
-                                </div>
+                            {/* Sync Status Panel (Only if not Local Original) */}
+                            {item.source !== 'Local' && (
+                                <>
+                                    <div className="border-t border-slate-200 my-2 mx-4 border-dashed"></div>
+                                    <div className="mt-4 px-4">
+                                      <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4">
+                                          <div 
+                                              className="flex items-center justify-between cursor-pointer select-none bg-slate-50 p-3 rounded-lg border border-slate-200/50 hover:border-slate-300 transition-colors"
+                                              onClick={() => setIsSyncPanelOpen(!isSyncPanelOpen)}
+                                          >
+                                            <div className="flex items-center gap-4">
+                                              <h4 className="text-sm font-bold text-slate-900">Sync Status</h4>
+                                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Up to date
+                                              </span>
+                                              <span className="text-xs text-slate-500">Last synced: 2 hours ago</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-slate-400">
+                                              <span className="text-xs font-medium">Compare</span>
+                                              <span className={`material-symbols-outlined text-[20px] transition-transform duration-200 ${isSyncPanelOpen ? 'rotate-180' : ''}`}>
+                                                  expand_more
+                                              </span>
+                                            </div>
+                                          </div>
+                                          
+                                          {isSyncPanelOpen && (
+                                              <div className="flex items-start gap-4 animate-in slide-in-from-top-2 duration-200 px-2">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
+                                                    <span className="material-symbols-outlined text-[16px]">public</span> Global Source (v14)
+                                                    </div>
+                                                    <p className="mt-1 text-sm text-slate-900 line-clamp-2">
+                                                    Our company was founded in 1990 with a mission to innovate and lead the technology sector...
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center justify-center self-center text-slate-400">
+                                                    <span className="material-symbols-outlined">arrow_forward</span>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
+                                                    <span className="material-symbols-outlined text-[16px]">translate</span> Taiwan Translation (v14)
+                                                    </div>
+                                                    <p className="mt-1 text-sm text-slate-900 line-clamp-2">
+                                                    我們公司成立於1990年，其使命是創新並引領科技行業...
+                                                    </p>
+                                                </div>
+                                              </div>
+                                          )}
+                                        </div>
+                                    </div>
+                                </>
                             )}
-                          </div>
+                           </div>
                         </td>
                       </tr>
                     )}
@@ -397,6 +417,17 @@ const LocalList: React.FC<Props> = ({ onNavigate }) => {
         newStatus={statusToChange?.newStatus || 'Draft'}
         onClose={() => setStatusToChange(null)}
         onConfirm={confirmStatusChange}
+      />
+
+      {/* SEO Settings Modal */}
+      <SeoSettingsModal 
+        isOpen={seoModalOpen}
+        onClose={() => setSeoModalOpen(false)}
+        onSave={() => {
+            console.log('Saved SEO settings for', activeSeoItem);
+            setSeoModalOpen(false);
+        }}
+        pageTitle={activeSeoItem?.title || ''}
       />
     </main>
   );

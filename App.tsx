@@ -4,14 +4,24 @@ import LocalList from './views/LocalList';
 import Editor from './views/Editor';
 import RecycleBin from './views/RecycleBin';
 import CompareView from './views/CompareView';
-import { ViewState } from './types';
+import { ViewState, PageItem } from './types';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('GLOBAL_LIST');
+  const [editorData, setEditorData] = useState<PageItem | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   const navigate = (view: ViewState) => {
+    // Clear editor data when navigating away or to a list
+    if (view.includes('LIST')) {
+      setEditorData(null);
+    }
+    setCurrentView(view);
+  };
+
+  const handleEdit = (view: ViewState, item: PageItem) => {
+    setEditorData(item);
     setCurrentView(view);
   };
 
@@ -23,16 +33,21 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background-light font-display">
-      {currentView === 'GLOBAL_LIST' && <GlobalList onNavigate={navigate} />}
-      {currentView === 'LOCAL_LIST' && <LocalList onNavigate={navigate} />}
+      {currentView === 'GLOBAL_LIST' && <GlobalList onNavigate={navigate} onEdit={handleEdit} />}
+      {currentView === 'LOCAL_LIST' && <LocalList onNavigate={navigate} onEdit={handleEdit} />}
       
       {currentView === 'EDITOR_GLOBAL' && (
         <Editor 
-          mode="read-only" 
-          title="Our Company History" 
-          slug="history" 
+          // Global pages are read-only if Published, editable if Draft
+          mode={editorData?.status === 'Draft' ? 'edit' : 'read-only'} 
+          title={editorData?.title || "Page Title"} 
+          slug={editorData?.slug || "slug"} 
           onNavigate={navigate} 
           onSave={() => triggerToast('Global content updated successfully.')}
+          onPublish={() => {
+            triggerToast('Page published successfully.');
+            navigate('GLOBAL_LIST');
+          }}
         />
       )}
       
@@ -46,18 +61,27 @@ const App: React.FC = () => {
             triggerToast('New page created successfully.');
             navigate('GLOBAL_LIST');
           }}
+          onPublish={() => {
+            triggerToast('New page published successfully.');
+            navigate('GLOBAL_LIST');
+          }}
         />
       )}
       
       {currentView === 'EDITOR_LOCAL' && (
         <Editor 
-          mode="edit" 
-          title="Company History (Taiwan)" 
-          slug="history" 
-          context="Taiwan" 
+          // Local pages are read-only if Published, editable if Draft
+          mode={editorData?.status === 'Draft' ? 'edit' : 'read-only'} 
+          title={editorData?.title || "Local Page"} 
+          slug={editorData?.slug || "slug"} 
+          context={editorData?.locale === 'TW' || editorData?.slug.startsWith('/tw') ? 'Taiwan' : 'Local'} 
           onNavigate={navigate} 
           onSave={() => {
             triggerToast('Local content updated successfully.');
+            navigate('LOCAL_LIST');
+          }}
+          onPublish={() => {
+            triggerToast('Local page published successfully.');
             navigate('LOCAL_LIST');
           }}
         />

@@ -1,22 +1,33 @@
 import React, { useState, useMemo } from 'react';
-import { ViewState, MOCK_DATA_GLOBAL } from '../types';
+import { ViewState, MOCK_DATA_GLOBAL, PageItem } from '../types';
 import ContextSwitcher from '../components/ContextSwitcher';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import StatusDropdown from '../components/StatusDropdown';
 import StatusChangeModal from '../components/StatusChangeModal';
 import ActionButtons from '../components/ActionButtons';
 import Tooltip from '../components/Tooltip';
+import SeoSettingsModal from '../components/SeoSettingsModal';
+import HistoryModal from '../components/HistoryModal';
 
 interface Props {
   onNavigate: (view: ViewState) => void;
+  onEdit: (view: ViewState, item: PageItem) => void;
 }
 
-const GlobalList: React.FC<Props> = ({ onNavigate }) => {
+const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
   const [activeDropdown, setActiveDropdown] = useState<'filter' | 'sort' | null>(null);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [openLocalCardSettingsId, setOpenLocalCardSettingsId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   
+  // SEO Modal State
+  const [seoModalOpen, setSeoModalOpen] = useState(false);
+  const [activeSeoItem, setActiveSeoItem] = useState<{id: string, title: string} | null>(null);
+
+  // History Modal State
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [activeHistoryItem, setActiveHistoryItem] = useState<{id: string, title: string} | null>(null);
+
   // Filter & Sort State
   const [filterStatus, setFilterStatus] = useState<'All' | 'Published' | 'Draft'>('All');
   const [sortOption, setSortOption] = useState<'Last Modified' | 'Alphabetical' | 'Status'>('Last Modified');
@@ -73,6 +84,16 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
   const confirmStatusChange = () => {
     console.log(`Changing status of ${statusToChange?.id} to ${statusToChange?.newStatus}`);
     setStatusToChange(null);
+  };
+
+  const openSeoSettings = (item: PageItem) => {
+    setActiveSeoItem({ id: item.id, title: item.title });
+    setSeoModalOpen(true);
+  };
+
+  const openHistory = (item: PageItem, context?: string) => {
+    setActiveHistoryItem({ id: item.id, title: context ? `${item.title} (${context})` : item.title });
+    setHistoryModalOpen(true);
   };
 
   return (
@@ -216,7 +237,7 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
             <table className="w-full text-left">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 w-[140px]">Actions</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 w-[160px]">Actions</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Page Title</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">URL Slug</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Status</th>
@@ -229,14 +250,16 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                     <tr className={`group hover:bg-slate-50 transition-colors ${expandedRowId === item.id ? 'bg-slate-50 border-l-[3px] border-primary' : ''}`}>
                       <td className="whitespace-nowrap px-6 py-5">
                         <ActionButtons
-                          onEdit={() => onNavigate('EDITOR_GLOBAL')}
+                          onEdit={() => onEdit('EDITOR_GLOBAL', item)}
                           onDelete={() => setItemToDelete(item.id)}
                           onSettings={() => toggleRow(item.id)}
+                          onPreview={() => console.log('Previewing item', item.id)}
                           isExpanded={expandedRowId === item.id}
                           tooltips={{
                             edit: "Edit Global Content",
                             delete: "Move to Trash",
-                            settings: "Configure Page & Regions"
+                            settings: "Configure Page & Regions",
+                            preview: "Preview Page"
                           }}
                         />
                       </td>
@@ -267,29 +290,26 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                         <td className="px-6 py-0" colSpan={5}>
                           <div className="flex flex-col w-full py-6">
                             
-                            {/* Section 1: Page Configuration (Moved from Dropdown) */}
+                            {/* Section 1: Page Configuration */}
                             <div className="mb-6 px-4">
                               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
                                 <span className="material-symbols-outlined text-[18px]">tune</span>
                                 Page Configuration
                               </h4>
                               <div className="flex flex-wrap gap-3">
-                                <button className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all shadow-sm">
-                                  <span className="material-symbols-outlined text-[18px]">settings_suggest</span>
-                                  Page Properties
-                                </button>
-                                <button className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all shadow-sm">
+                                <button 
+                                  onClick={() => openSeoSettings(item)}
+                                  className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all shadow-sm"
+                                >
                                   <span className="material-symbols-outlined text-[18px]">travel_explore</span>
                                   SEO Settings
                                 </button>
-                                <button className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all shadow-sm">
+                                <button 
+                                    onClick={() => openHistory(item)}
+                                    className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all shadow-sm"
+                                >
                                   <span className="material-symbols-outlined text-[18px]">history</span>
                                   View History
-                                </button>
-                                <div className="h-auto w-px bg-slate-300 mx-1"></div>
-                                <button className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 hover:border-red-200 transition-all shadow-sm">
-                                  <span className="material-symbols-outlined text-[18px]">unpublished</span>
-                                  Unpublish Page
                                 </button>
                               </div>
                             </div>
@@ -349,7 +369,14 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                                                 <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                                                   <span className="material-symbols-outlined text-[16px]">edit</span> Edit Content
                                                 </button>
-                                                 <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                                                 <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openHistory(item, 'United States');
+                                                        setOpenLocalCardSettingsId(null);
+                                                    }}
+                                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                                                >
                                                   <span className="material-symbols-outlined text-[16px]">history</span> View History
                                                 </button>
                                                  <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
@@ -374,6 +401,16 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                                         <div className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">Taiwan</div>
                                       </div>
                                       <div className="flex items-center gap-1">
+                                        <Tooltip content="Translate with AI">
+                                          <button 
+                                            onClick={(e) => { e.stopPropagation(); /* Add translation logic here */ }}
+                                            className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-1 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors"
+                                          >
+                                            <span className="material-symbols-outlined text-[16px] text-slate-500">auto_awesome</span>
+                                            <span className="text-[10px] font-bold">AI</span>
+                                          </button>
+                                        </Tooltip>
+
                                         <Tooltip content="Edit Local Content">
                                           <button 
                                             className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors"
@@ -397,7 +434,14 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
                                                 <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                                                   <span className="material-symbols-outlined text-[16px]">edit</span> Edit Content
                                                 </button>
-                                                 <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                                                 <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openHistory(item, 'Taiwan');
+                                                        setOpenLocalCardSettingsId(null);
+                                                    }}
+                                                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                                                 >
                                                   <span className="material-symbols-outlined text-[16px]">history</span> View History
                                                 </button>
                                                  <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
@@ -457,6 +501,28 @@ const GlobalList: React.FC<Props> = ({ onNavigate }) => {
         newStatus={statusToChange?.newStatus || 'Draft'}
         onClose={() => setStatusToChange(null)}
         onConfirm={confirmStatusChange}
+      />
+
+      {/* SEO Settings Modal */}
+      <SeoSettingsModal 
+        isOpen={seoModalOpen}
+        onClose={() => setSeoModalOpen(false)}
+        onSave={() => {
+            console.log('Saved SEO settings for', activeSeoItem);
+            setSeoModalOpen(false);
+        }}
+        pageTitle={activeSeoItem?.title || ''}
+      />
+
+      {/* History Modal */}
+      <HistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        pageTitle={activeHistoryItem?.title || ''}
+        onRestore={(version) => {
+            console.log(`Restoring version ${version} for ${activeHistoryItem?.title}`);
+            setHistoryModalOpen(false);
+        }}
       />
     </main>
   );

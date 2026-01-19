@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ViewState } from '../types';
 
 interface Props {
@@ -8,14 +8,46 @@ interface Props {
   context?: string;
   onNavigate: (view: ViewState) => void;
   onSave: () => void;
+  onPublish?: () => void;
 }
 
-const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug, context, onNavigate, onSave }) => {
+interface Resource {
+  id: string;
+  name: string;
+  type: 'css' | 'js';
+}
+
+const AVAILABLE_RESOURCES: Resource[] = [
+  { id: 'css-1', name: 'main-theme.css', type: 'css' },
+  { id: 'css-2', name: 'typography-base.css', type: 'css' },
+  { id: 'css-3', name: 'grid-layout.css', type: 'css' },
+  { id: 'css-4', name: 'dark-mode.css', type: 'css' },
+  { id: 'js-1', name: 'analytics-core.js', type: 'js' },
+  { id: 'js-2', name: 'slider-component.js', type: 'js' },
+  { id: 'js-3', name: 'form-validation.js', type: 'js' },
+  { id: 'js-4', name: 'marketing-tracker.js', type: 'js' },
+  { id: 'js-5', name: 'interactive-maps.js', type: 'js' },
+];
+
+const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug, context, onNavigate, onSave, onPublish }) => {
   const [title, setTitle] = useState(initialTitle);
   const [slug, setSlug] = useState(initialSlug);
   const [hasForbiddenTags, setHasForbiddenTags] = useState(false);
   const isReadOnly = mode === 'read-only';
   
+  // Script & Style State
+  const [attachedResources, setAttachedResources] = useState<Resource[]>([
+    { id: 'css-1', name: 'main-theme.css', type: 'css' },
+    { id: 'js-1', name: 'analytics-core.js', type: 'js' }
+  ]);
+  const [resourceSearch, setResourceSearch] = useState('');
+  const [isResourceDropdownOpen, setIsResourceDropdownOpen] = useState(false);
+  const resourceDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Security check: Block ONLY if forbidden tags exist in the HTML content.
+  // Attached resources via the UI are explicitly allowed.
+  const hasSecurityIssues = hasForbiddenTags;
+
   // Use a ref to access the current content for saving if needed later
   const editorContentRef = useRef<HTMLDivElement>(null);
 
@@ -36,12 +68,40 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
   </div>
 </div>`;
 
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (resourceDropdownRef.current && !resourceDropdownRef.current.contains(event.target as Node)) {
+        setIsResourceDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleEditorInput = (e: React.FormEvent<HTMLDivElement>) => {
     const content = e.currentTarget.innerText;
-    // Regex to check for <script or <style tags, case insensitive, allowing whitespace
-    const forbiddenPattern = /<\s*(script|style)/i;
+    // Regex to check for <script, <style, <link tags, OR inline style="..." attributes
+    // Matches: <script, <style, <link, style="...", style='...'
+    // This covers <link rel="stylesheet"> and <script src="..."> cases
+    const forbiddenPattern = /<\s*(script|style|link)|style\s*=\s*['"]/i;
     setHasForbiddenTags(forbiddenPattern.test(content));
   };
+
+  const addResource = (resource: Resource) => {
+    setAttachedResources([...attachedResources, resource]);
+    setResourceSearch('');
+    setIsResourceDropdownOpen(false);
+  };
+
+  const removeResource = (id: string) => {
+    setAttachedResources(attachedResources.filter(r => r.id !== id));
+  };
+
+  const filteredResources = AVAILABLE_RESOURCES.filter(r => 
+    r.name.toLowerCase().includes(resourceSearch.toLowerCase()) && 
+    !attachedResources.find(ar => ar.id === r.id)
+  );
 
   return (
     <main className="w-full h-full p-4 md:p-6 pb-20 max-w-[1600px] mx-auto">
@@ -64,18 +124,35 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
             Cancel
           </button>
           {!isReadOnly && (
-            <button 
-              onClick={onSave}
-              disabled={hasForbiddenTags}
-              className={`px-4 py-2 rounded-lg font-bold shadow-md transition-all text-sm flex items-center gap-2 ${
-                hasForbiddenTags 
-                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' 
-                  : 'bg-primary hover:bg-primary-dark text-white shadow-primary/20'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">save</span>
-              Save
-            </button>
+            <>
+              <button 
+                onClick={onSave}
+                disabled={hasSecurityIssues}
+                className={`px-4 py-2 rounded-lg font-bold shadow-md transition-all text-sm flex items-center gap-2 ${
+                  hasSecurityIssues 
+                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' 
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">save</span>
+                Save Draft
+              </button>
+
+              {onPublish && (
+                <button 
+                  onClick={onPublish}
+                  disabled={hasSecurityIssues}
+                  className={`px-4 py-2 rounded-lg font-bold shadow-md transition-all text-sm flex items-center gap-2 ${
+                    hasSecurityIssues 
+                      ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' 
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
+                  Publish
+                </button>
+              )}
+            </>
           )}
         </div>
       </header>
@@ -107,7 +184,7 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
                 </div>
                 
                 {/* Warning / Info Box */}
-                {hasForbiddenTags ? (
+                {hasSecurityIssues ? (
                   <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r shadow-sm animate-in slide-in-from-top-2 duration-200">
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
@@ -115,9 +192,14 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
                       </div>
                       <div className="ml-3">
                         <h3 className="text-sm font-bold text-red-800">Security Warning</h3>
-                        <p className="text-sm text-red-700 mt-1">
-                          For security reasons, <code>&lt;script&gt;</code> and <code>&lt;style&gt;</code> tags are strictly forbidden. Please remove them to save your changes.
-                        </p>
+                        <div className="text-sm text-red-700 mt-1 space-y-1">
+                          <p>Directly embedding scripts or styles in the HTML editor is forbidden.</p>
+                          <ul className="list-disc pl-4 space-y-0.5">
+                            <li><code>&lt;script&gt;</code>, <code>&lt;style&gt;</code>, or <code>&lt;link&gt;</code> tags</li>
+                            <li>Inline <code>style="..."</code> attributes</li>
+                          </ul>
+                          <p className="mt-2 font-medium">Please remove these tags. Use the "Scripts & Styles" panel below to attach approved resources.</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -129,7 +211,7 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
                       </div>
                       <div className="ml-3">
                         <p className="text-sm text-orange-700">
-                          <span className="font-bold">HTML only.</span> Please do not include <code>&lt;script&gt;</code> or <code>&lt;style&gt;</code> tags here.
+                          <span className="font-bold">HTML only.</span> To add CSS or JS, please use the <strong>Scripts & Styles</strong> section below.
                         </p>
                       </div>
                     </div>
@@ -164,7 +246,7 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
             </div>
           </div>
           
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-visible relative">
             <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-700 font-semibold">
                 <span className="material-symbols-outlined text-[20px]">javascript</span>
@@ -172,17 +254,79 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
               </div>
             </div>
             <div className="p-6">
-              <div className="flex flex-wrap gap-2">
-                <div className="inline-flex items-center bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded border border-blue-100">
-                  <span className="material-symbols-outlined text-[14px] mr-1.5">css</span>
-                  <span>main-theme.css</span>
-                  <button className="ml-1.5 text-blue-400 hover:text-blue-600"><span className="material-symbols-outlined text-[14px]">close</span></button>
+              
+              {!isReadOnly && (
+                <div className="relative mb-4" ref={resourceDropdownRef}>
+                    <div className="relative">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <span className="material-symbols-outlined text-slate-400 text-[18px]">search</span>
+                        </div>
+                        <input 
+                            type="text"
+                            className="block w-full rounded-lg border-slate-200 bg-white py-2 pl-10 pr-3 text-sm placeholder:text-slate-400 focus:border-primary focus:ring-primary"
+                            placeholder="Search to add CSS or JS files..."
+                            value={resourceSearch}
+                            onChange={(e) => {
+                                setResourceSearch(e.target.value);
+                                setIsResourceDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsResourceDropdownOpen(true)}
+                        />
+                    </div>
+                    {isResourceDropdownOpen && (
+                        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
+                             {filteredResources.length > 0 ? (
+                                filteredResources.map(resource => (
+                                    <button
+                                        key={resource.id}
+                                        onClick={() => addResource(resource)}
+                                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-slate-50 text-slate-700"
+                                    >
+                                        <span className={`material-symbols-outlined text-[18px] ${resource.type === 'css' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                            {resource.type === 'css' ? 'css' : 'javascript'}
+                                        </span>
+                                        <span>{resource.name}</span>
+                                    </button>
+                                ))
+                             ) : (
+                                <div className="px-4 py-3 text-sm text-slate-500 text-center">
+                                    No available resources found.
+                                </div>
+                             )}
+                        </div>
+                    )}
                 </div>
-                 <div className="inline-flex items-center bg-yellow-50 text-yellow-700 text-xs px-2 py-1 rounded border border-yellow-100">
-                  <span className="material-symbols-outlined text-[14px] mr-1.5">javascript</span>
-                  <span>analytics-core.js</span>
-                   <button className="ml-1.5 text-yellow-400 hover:text-yellow-600"><span className="material-symbols-outlined text-[14px]">close</span></button>
-                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 min-h-[40px]">
+                {attachedResources.map(resource => (
+                    <div 
+                        key={resource.id}
+                        className={`inline-flex items-center text-xs px-2.5 py-1.5 rounded-lg border transition-all animate-in zoom-in-95 duration-200 ${
+                            resource.type === 'css' 
+                                ? 'bg-blue-50 text-blue-700 border-blue-100' 
+                                : 'bg-yellow-50 text-yellow-800 border-yellow-100'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-[16px] mr-1.5 opacity-70">
+                            {resource.type === 'css' ? 'css' : 'javascript'}
+                        </span>
+                        <span className="font-medium">{resource.name}</span>
+                        {!isReadOnly && (
+                            <button 
+                                onClick={() => removeResource(resource.id)}
+                                className={`ml-2 rounded-full p-0.5 hover:bg-black/10 transition-colors ${
+                                    resource.type === 'css' ? 'text-blue-500' : 'text-yellow-600'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-[14px] block">close</span>
+                            </button>
+                        )}
+                    </div>
+                ))}
+                {attachedResources.length === 0 && (
+                    <div className="text-sm text-slate-400 italic py-1">No scripts or styles attached.</div>
+                )}
               </div>
             </div>
           </div>
@@ -197,8 +341,8 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
             <div className="flex items-center justify-between mb-6 p-3 bg-background-light rounded-lg">
               <span className="text-sm font-medium text-slate-700">Visible to Public</span>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" defaultChecked />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                <input type="checkbox" className="sr-only peer" defaultChecked disabled={isReadOnly} />
+                <div className={`w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${isReadOnly ? 'opacity-50' : 'peer-checked:bg-primary'}`}></div>
               </label>
             </div>
             <div className="space-y-4 pt-4 border-t border-slate-100">
