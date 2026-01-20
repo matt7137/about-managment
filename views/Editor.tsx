@@ -15,18 +15,19 @@ interface Resource {
   id: string;
   name: string;
   type: 'css' | 'js';
+  origin?: 'system' | 'custom';
 }
 
 const AVAILABLE_RESOURCES: Resource[] = [
-  { id: 'css-1', name: 'main-theme.css', type: 'css' },
-  { id: 'css-2', name: 'typography-base.css', type: 'css' },
-  { id: 'css-3', name: 'grid-layout.css', type: 'css' },
-  { id: 'css-4', name: 'dark-mode.css', type: 'css' },
-  { id: 'js-1', name: 'analytics-core.js', type: 'js' },
-  { id: 'js-2', name: 'slider-component.js', type: 'js' },
-  { id: 'js-3', name: 'form-validation.js', type: 'js' },
-  { id: 'js-4', name: 'marketing-tracker.js', type: 'js' },
-  { id: 'js-5', name: 'interactive-maps.js', type: 'js' },
+  { id: 'css-1', name: 'main-theme.css', type: 'css', origin: 'system' },
+  { id: 'css-2', name: 'typography-base.css', type: 'css', origin: 'system' },
+  { id: 'css-3', name: 'grid-layout.css', type: 'css', origin: 'system' },
+  { id: 'css-4', name: 'dark-mode.css', type: 'css', origin: 'system' },
+  { id: 'js-1', name: 'analytics-core.js', type: 'js', origin: 'system' },
+  { id: 'js-2', name: 'slider-component.js', type: 'js', origin: 'system' },
+  { id: 'js-3', name: 'form-validation.js', type: 'js', origin: 'system' },
+  { id: 'js-4', name: 'marketing-tracker.js', type: 'js', origin: 'system' },
+  { id: 'js-5', name: 'interactive-maps.js', type: 'js', origin: 'system' },
 ];
 
 const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug, context, onNavigate, onSave, onPublish }) => {
@@ -35,20 +36,30 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
   const [hasForbiddenTags, setHasForbiddenTags] = useState(false);
   const isReadOnly = mode === 'read-only';
   
-  // Script & Style State
-  const [attachedResources, setAttachedResources] = useState<Resource[]>([
-    { id: 'css-1', name: 'main-theme.css', type: 'css' },
-    { id: 'js-1', name: 'analytics-core.js', type: 'js' }
+  // Resources State
+  const [headResources, setHeadResources] = useState<Resource[]>([
+    { id: 'css-1', name: 'main-theme.css', type: 'css', origin: 'system' },
+    { id: 'custom-css-demo', name: 'a7f3e2b9c4d1.css', type: 'css', origin: 'custom' }
   ]);
-  const [resourceSearch, setResourceSearch] = useState('');
-  const [isResourceDropdownOpen, setIsResourceDropdownOpen] = useState(false);
-  const resourceDropdownRef = useRef<HTMLDivElement>(null);
+  const [bodyResources, setBodyResources] = useState<Resource[]>([
+    { id: 'js-1', name: 'analytics-core.js', type: 'js', origin: 'system' },
+    { id: 'custom-js-demo', name: 'b8d2e5a1c9f3.js', type: 'js', origin: 'custom' }
+  ]);
 
-  // Security check: Block ONLY if forbidden tags exist in the HTML content.
-  // Attached resources via the UI are explicitly allowed.
+  // Dropdown States
+  const [headSearch, setHeadSearch] = useState('');
+  const [isHeadDropdownOpen, setIsHeadDropdownOpen] = useState(false);
+  const headDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [bodySearch, setBodySearch] = useState('');
+  const [isBodyDropdownOpen, setIsBodyDropdownOpen] = useState(false);
+  const bodyDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // File Upload State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Security check
   const hasSecurityIssues = hasForbiddenTags;
-
-  // Use a ref to access the current content for saving if needed later
   const editorContentRef = useRef<HTMLDivElement>(null);
 
   const initialHtmlContent = `
@@ -68,11 +79,14 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
   </div>
 </div>`;
 
-  // Close dropdown on click outside
+  // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (resourceDropdownRef.current && !resourceDropdownRef.current.contains(event.target as Node)) {
-        setIsResourceDropdownOpen(false);
+      if (headDropdownRef.current && !headDropdownRef.current.contains(event.target as Node)) {
+        setIsHeadDropdownOpen(false);
+      }
+      if (bodyDropdownRef.current && !bodyDropdownRef.current.contains(event.target as Node)) {
+        setIsBodyDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -81,30 +95,72 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
 
   const handleEditorInput = (e: React.FormEvent<HTMLDivElement>) => {
     const content = e.currentTarget.innerText;
-    // Regex to check for <script, <style, <link tags, OR inline style="..." attributes
-    // Matches: <script, <style, <link, style="...", style='...'
-    // This covers <link rel="stylesheet"> and <script src="..."> cases
     const forbiddenPattern = /<\s*(script|style|link)|style\s*=\s*['"]/i;
     setHasForbiddenTags(forbiddenPattern.test(content));
   };
 
-  const addResource = (resource: Resource) => {
-    setAttachedResources([...attachedResources, resource]);
-    setResourceSearch('');
-    setIsResourceDropdownOpen(false);
+  // Logic for Head Resources
+  const addHeadResource = (resource: Resource) => {
+    setHeadResources([...headResources, resource]);
+    setHeadSearch('');
+    setIsHeadDropdownOpen(false);
   };
-
-  const removeResource = (id: string) => {
-    setAttachedResources(attachedResources.filter(r => r.id !== id));
+  const removeHeadResource = (id: string) => {
+    setHeadResources(headResources.filter(r => r.id !== id));
   };
-
-  const filteredResources = AVAILABLE_RESOURCES.filter(r => 
-    r.name.toLowerCase().includes(resourceSearch.toLowerCase()) && 
-    !attachedResources.find(ar => ar.id === r.id)
+  const filteredHeadResources = AVAILABLE_RESOURCES.filter(r => 
+    r.name.toLowerCase().includes(headSearch.toLowerCase()) && 
+    !headResources.find(hr => hr.id === r.id) &&
+    !bodyResources.find(br => br.id === r.id) // Optionally prevent duplicates across sections
   );
 
+  // Logic for Body Resources
+  const addBodyResource = (resource: Resource) => {
+    setBodyResources([...bodyResources, resource]);
+    setBodySearch('');
+    setIsBodyDropdownOpen(false);
+  };
+  const removeBodyResource = (id: string) => {
+    setBodyResources(bodyResources.filter(r => r.id !== id));
+  };
+  const filteredBodyResources = AVAILABLE_RESOURCES.filter(r => 
+    r.name.toLowerCase().includes(bodySearch.toLowerCase()) && 
+    !bodyResources.find(br => br.id === r.id) &&
+    !headResources.find(hr => hr.id === r.id)
+  );
+
+  // Logic for Custom Upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const type = file.name.endsWith('.css') ? 'css' : 'js';
+      const ext = file.name.split('.').pop() || type;
+      
+      // Simulate hash generation (12 random hex characters)
+      const hash = Array.from({ length: 12 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const hashedName = `${hash}.${ext}`;
+
+      const newResource: Resource = {
+        id: `custom-${Date.now()}`,
+        name: hashedName,
+        type: type,
+        origin: 'custom'
+      };
+
+      if (type === 'css') {
+        setHeadResources([...headResources, newResource]);
+      } else {
+        setBodyResources([...bodyResources, newResource]);
+      }
+      
+      // Reset input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
-    <main className="w-full h-full p-4 md:p-6 pb-20 max-w-[1600px] mx-auto">
+    <main className="w-full p-4 md:p-6 pb-20 max-w-[1600px] mx-auto">
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-200 pb-6">
         <div className="space-y-1">
@@ -211,7 +267,7 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
                       </div>
                       <div className="ml-3">
                         <p className="text-sm text-orange-700">
-                          <span className="font-bold">HTML only.</span> To add CSS or JS, please use the <strong>Scripts & Styles</strong> section below.
+                          <span className="font-bold">HTML only.</span> To add CSS or JS, please use the <strong>Scripts & Styles</strong> sections below.
                         </p>
                       </div>
                     </div>
@@ -246,88 +302,212 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
             </div>
           </div>
           
+          {/* Scripts & Styles Section */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-visible relative">
-            <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                <span className="material-symbols-outlined text-[20px]">javascript</span>
-                <h3>Scripts & Styles</h3>
-              </div>
+            <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex items-center gap-2 text-slate-700 font-semibold">
+              <span className="material-symbols-outlined text-[20px]">javascript</span>
+              <h3>Scripts & Styles</h3>
             </div>
-            <div className="p-6">
+            
+            <div className="p-6 space-y-8">
               
-              {!isReadOnly && (
-                <div className="relative mb-4" ref={resourceDropdownRef}>
-                    <div className="relative">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <span className="material-symbols-outlined text-slate-400 text-[18px]">search</span>
-                        </div>
-                        <input 
-                            type="text"
-                            className="block w-full rounded-lg border-slate-200 bg-white py-2 pl-10 pr-3 text-sm placeholder:text-slate-400 focus:border-primary focus:ring-primary"
-                            placeholder="Search to add CSS or JS files..."
-                            value={resourceSearch}
-                            onChange={(e) => {
-                                setResourceSearch(e.target.value);
-                                setIsResourceDropdownOpen(true);
-                            }}
-                            onFocus={() => setIsResourceDropdownOpen(true)}
-                        />
-                    </div>
-                    {isResourceDropdownOpen && (
-                        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
-                             {filteredResources.length > 0 ? (
-                                filteredResources.map(resource => (
-                                    <button
-                                        key={resource.id}
-                                        onClick={() => addResource(resource)}
-                                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-slate-50 text-slate-700"
-                                    >
-                                        <span className={`material-symbols-outlined text-[18px] ${resource.type === 'css' ? 'text-blue-500' : 'text-yellow-500'}`}>
-                                            {resource.type === 'css' ? 'css' : 'javascript'}
-                                        </span>
-                                        <span>{resource.name}</span>
-                                    </button>
-                                ))
-                             ) : (
-                                <div className="px-4 py-3 text-sm text-slate-500 text-center">
-                                    No available resources found.
-                                </div>
-                             )}
-                        </div>
-                    )}
+              {/* 1. HEAD Section */}
+              <div className="relative">
+                <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">code_blocks</span>
+                        Head (&lt;head&gt;)
+                    </h4>
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">Loaded First</span>
                 </div>
-              )}
-
-              <div className="flex flex-wrap gap-2 min-h-[40px]">
-                {attachedResources.map(resource => (
-                    <div 
-                        key={resource.id}
-                        className={`inline-flex items-center text-xs px-2.5 py-1.5 rounded-lg border transition-all animate-in zoom-in-95 duration-200 ${
-                            resource.type === 'css' 
-                                ? 'bg-blue-50 text-blue-700 border-blue-100' 
-                                : 'bg-yellow-50 text-yellow-800 border-yellow-100'
-                        }`}
-                    >
-                        <span className="material-symbols-outlined text-[16px] mr-1.5 opacity-70">
-                            {resource.type === 'css' ? 'css' : 'javascript'}
-                        </span>
-                        <span className="font-medium">{resource.name}</span>
-                        {!isReadOnly && (
-                            <button 
-                                onClick={() => removeResource(resource.id)}
-                                className={`ml-2 rounded-full p-0.5 hover:bg-black/10 transition-colors ${
-                                    resource.type === 'css' ? 'text-blue-500' : 'text-yellow-600'
-                                }`}
-                            >
-                                <span className="material-symbols-outlined text-[14px] block">close</span>
-                            </button>
+                
+                {/* Head Search Dropdown */}
+                {!isReadOnly && (
+                    <div className="relative mb-3" ref={headDropdownRef}>
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span className="material-symbols-outlined text-slate-400 text-[18px]">search</span>
+                            </div>
+                            <input 
+                                type="text"
+                                className="block w-full rounded-lg border-slate-200 bg-white py-2 pl-10 pr-3 text-sm placeholder:text-slate-400 focus:border-primary focus:ring-primary"
+                                placeholder="Add CSS/JS to Head..."
+                                value={headSearch}
+                                onChange={(e) => {
+                                    setHeadSearch(e.target.value);
+                                    setIsHeadDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsHeadDropdownOpen(true)}
+                            />
+                        </div>
+                        {isHeadDropdownOpen && (
+                            <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
+                                {filteredHeadResources.length > 0 ? (
+                                    filteredHeadResources.map(resource => (
+                                        <button
+                                            key={resource.id}
+                                            onClick={() => addHeadResource(resource)}
+                                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-slate-50 text-slate-700"
+                                        >
+                                            <span className={`material-symbols-outlined text-[18px] ${resource.type === 'css' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                                {resource.type === 'css' ? 'css' : 'javascript'}
+                                            </span>
+                                            <span>{resource.name}</span>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-3 text-sm text-slate-500 text-center">No available resources.</div>
+                                )}
+                            </div>
                         )}
                     </div>
-                ))}
-                {attachedResources.length === 0 && (
-                    <div className="text-sm text-slate-400 italic py-1">No scripts or styles attached.</div>
                 )}
+
+                {/* Head List */}
+                <div className="flex flex-wrap gap-2 min-h-[36px] bg-slate-50 rounded-lg p-2 border border-slate-200 border-dashed">
+                    {headResources.map(resource => (
+                        <div key={resource.id} className={`inline-flex items-center text-xs px-2.5 py-1.5 rounded-lg border transition-all animate-in zoom-in-95 duration-200 ${resource.type === 'css' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-yellow-50 text-yellow-800 border-yellow-100'}`}>
+                             {resource.origin === 'custom' && <span className="material-symbols-outlined text-[14px] mr-1 text-slate-400" title="Custom Upload">cloud_upload</span>}
+                            <span className="material-symbols-outlined text-[16px] mr-1.5 opacity-70">{resource.type === 'css' ? 'css' : 'javascript'}</span>
+                            <span className="font-medium">{resource.name}</span>
+                            {!isReadOnly && (
+                                <button onClick={() => removeHeadResource(resource.id)} className="ml-2 rounded-full p-0.5 hover:bg-black/10 transition-colors">
+                                    <span className="material-symbols-outlined text-[14px] block">close</span>
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    {headResources.length === 0 && <div className="text-xs text-slate-400 italic py-1 px-1">No resources in &lt;head&gt;.</div>}
+                </div>
               </div>
+
+              {/* 2. BODY Section */}
+              <div className="relative">
+                 <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">html</span>
+                        Body (&lt;body&gt;)
+                    </h4>
+                     <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">Loaded Last</span>
+                </div>
+
+                {/* Body Search Dropdown */}
+                {!isReadOnly && (
+                    <div className="relative mb-3" ref={bodyDropdownRef}>
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span className="material-symbols-outlined text-slate-400 text-[18px]">search</span>
+                            </div>
+                            <input 
+                                type="text"
+                                className="block w-full rounded-lg border-slate-200 bg-white py-2 pl-10 pr-3 text-sm placeholder:text-slate-400 focus:border-primary focus:ring-primary"
+                                placeholder="Add JS to Body..."
+                                value={bodySearch}
+                                onChange={(e) => {
+                                    setBodySearch(e.target.value);
+                                    setIsBodyDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsBodyDropdownOpen(true)}
+                            />
+                        </div>
+                        {isBodyDropdownOpen && (
+                            <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
+                                {filteredBodyResources.length > 0 ? (
+                                    filteredBodyResources.map(resource => (
+                                        <button
+                                            key={resource.id}
+                                            onClick={() => addBodyResource(resource)}
+                                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-slate-50 text-slate-700"
+                                        >
+                                            <span className={`material-symbols-outlined text-[18px] ${resource.type === 'css' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                                {resource.type === 'css' ? 'css' : 'javascript'}
+                                            </span>
+                                            <span>{resource.name}</span>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-3 text-sm text-slate-500 text-center">No available resources.</div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                 {/* Body List */}
+                 <div className="flex flex-wrap gap-2 min-h-[36px] bg-slate-50 rounded-lg p-2 border border-slate-200 border-dashed">
+                    {bodyResources.map(resource => (
+                        <div key={resource.id} className={`inline-flex items-center text-xs px-2.5 py-1.5 rounded-lg border transition-all animate-in zoom-in-95 duration-200 ${resource.type === 'css' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-yellow-50 text-yellow-800 border-yellow-100'}`}>
+                             {resource.origin === 'custom' && <span className="material-symbols-outlined text-[14px] mr-1 text-slate-400" title="Custom Upload">cloud_upload</span>}
+                            <span className="material-symbols-outlined text-[16px] mr-1.5 opacity-70">{resource.type === 'css' ? 'css' : 'javascript'}</span>
+                            <span className="font-medium">{resource.name}</span>
+                            {!isReadOnly && (
+                                <button onClick={() => removeBodyResource(resource.id)} className="ml-2 rounded-full p-0.5 hover:bg-black/10 transition-colors">
+                                    <span className="material-symbols-outlined text-[14px] block">close</span>
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    {bodyResources.length === 0 && <div className="text-xs text-slate-400 italic py-1 px-1">No resources in &lt;body&gt;.</div>}
+                </div>
+              </div>
+
+              {/* 3. Custom Upload Section */}
+              {!isReadOnly && (
+                 <div className="relative pt-4 border-t border-slate-100">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">cloud_upload</span>
+                        Upload Custom Assets
+                    </h4>
+                    
+                    {/* Display existing custom assets */}
+                    {(() => {
+                        const customAssets = [...headResources, ...bodyResources].filter(r => r.origin === 'custom');
+                        if (customAssets.length > 0) {
+                            return (
+                                <div className="mb-4 bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Uploaded Files</p>
+                                        <span className="text-[10px] text-slate-400">Auto-hashed filenames</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {customAssets.map(asset => (
+                                            <div key={asset.id} className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-slate-200 bg-white shadow-sm text-xs text-slate-700 animate-in zoom-in-95 duration-200">
+                                                <span className={`material-symbols-outlined text-[16px] ${asset.type === 'css' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                                    {asset.type === 'css' ? 'css' : 'javascript'}
+                                                </span>
+                                                <span className="font-mono text-[11px] text-slate-600">{asset.name}</span>
+                                                <button 
+                                                    onClick={() => asset.type === 'css' ? removeHeadResource(asset.id) : removeBodyResource(asset.id)}
+                                                    className="ml-1 text-slate-300 hover:text-red-500 transition-colors"
+                                                    title="Remove"
+                                                >
+                                                    <span className="material-symbols-outlined text-[16px] block">close</span>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-200 border-dashed rounded-lg cursor-pointer bg-slate-50/50 hover:bg-slate-50 hover:border-primary/50 transition-colors group">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <span className="material-symbols-outlined text-slate-400 mb-2 group-hover:text-primary transition-colors">upload_file</span>
+                            <p className="mb-1 text-sm text-slate-500"><span className="font-bold text-slate-700 group-hover:text-primary">Click to upload</span> custom JS or CSS</p>
+                            <p className="text-xs text-slate-400">.js or .css files only</p>
+                        </div>
+                        <input 
+                            ref={fileInputRef} 
+                            type="file" 
+                            className="hidden" 
+                            accept=".js,.css" 
+                            onChange={handleFileUpload}
+                        />
+                    </label>
+                 </div>
+              )}
             </div>
           </div>
         </div>

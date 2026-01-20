@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface Props {
   isOpen: boolean;
@@ -8,7 +8,19 @@ interface Props {
 }
 
 const SeoSettingsModal: React.FC<Props> = ({ isOpen, onClose, onSave, pageTitle }) => {
+  const [schemaDescription, setSchemaDescription] = useState("Discover our company history, mission, and the team driving innovation.");
+  const [isGenerating, setIsGenerating] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleAiGenerate = () => {
+    setIsGenerating(true);
+    // Simulate AI API call
+    setTimeout(() => {
+      setSchemaDescription("Official company profile: Established in 1990, we are a global leader in technology innovation, dedicated to transparency and excellence across all our regional teams.");
+      setIsGenerating(false);
+    }, 1500);
+  };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -35,7 +47,7 @@ const SeoSettingsModal: React.FC<Props> = ({ isOpen, onClose, onSave, pageTitle 
                </div>
                <div className="text-lg text-blue-600 font-medium hover:underline cursor-pointer truncate">{pageTitle} - Company Name</div>
                <div className="text-sm text-slate-600 line-clamp-2">
-                 Discover our company history, mission, and the team driving innovation since 1990. We are committed to excellence and transparency.
+                 {schemaDescription}
                </div>
             </div>
           </div>
@@ -71,24 +83,64 @@ const SeoSettingsModal: React.FC<Props> = ({ isOpen, onClose, onSave, pageTitle 
                   <span className="material-symbols-outlined text-[16px]">schema</span>
                   Schema Markup (JSON-LD)
                </h4>
-               <div className="relative">
-                  <textarea 
-                    rows={6} 
-                    className="w-full rounded-lg border-slate-300 focus:border-primary focus:ring-primary text-xs font-mono text-slate-600 shadow-sm bg-slate-50" 
-                    placeholder='<script type="application/ld+json">{ ... }</script>'
-                    defaultValue={`{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "My Company",
-  "url": "https://www.example.com",
-  "logo": "https://www.example.com/logo.png"
-}`}
-                  ></textarea>
-                  <div className="absolute top-2 right-2">
-                     <span className="text-[10px] font-bold text-slate-400 border border-slate-200 rounded px-1.5 py-0.5 bg-white">JSON</span>
+               
+               <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="mb-3">
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Schema Description</label>
+                    <div className="relative">
+                      <input 
+                          type="text" 
+                          className="w-full rounded-lg border-slate-300 focus:border-primary focus:ring-primary text-sm shadow-sm bg-white pr-28"
+                          value={schemaDescription}
+                          onChange={(e) => setSchemaDescription(e.target.value)}
+                          placeholder="Brief description for the schema object"
+                      />
+                      <button 
+                        onClick={handleAiGenerate}
+                        disabled={isGenerating}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-100 disabled:opacity-50 transition-colors border border-indigo-100"
+                      >
+                        {isGenerating ? (
+                           <span className="material-symbols-outlined text-[16px] animate-spin">refresh</span>
+                        ) : (
+                           <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                        )}
+                        AI Assist
+                      </button>
+                    </div>
                   </div>
+                  
+                  <div className="bg-white rounded border border-slate-200 p-2 text-xs font-mono text-slate-500">
+                      <div className="flex gap-2">
+                          <span className="text-slate-400 select-none w-4 text-right">1</span>
+                          <span className="text-slate-600">"@context": "https://schema.org",</span>
+                      </div>
+                      <div className="flex gap-2">
+                          <span className="text-slate-400 select-none w-4 text-right">2</span>
+                          <span className="text-slate-600">"@type": "Organization",</span>
+                      </div>
+                      <div className="flex gap-2">
+                          <span className="text-slate-400 select-none w-4 text-right">3</span>
+                          <span className="text-slate-600">"name": "My Company",</span>
+                      </div>
+                      <div className="flex gap-2 bg-blue-50 -mx-2 px-2 border-l-2 border-primary">
+                          <span className="text-slate-400 select-none w-4 text-right">4</span>
+                          <span className="text-slate-900 font-bold truncate">"description": "{schemaDescription}",</span>
+                      </div>
+                      <div className="flex gap-2">
+                          <span className="text-slate-400 select-none w-4 text-right">5</span>
+                          <span className="text-slate-600">"url": "https://www.example.com",</span>
+                      </div>
+                      <div className="flex gap-2">
+                          <span className="text-slate-400 select-none w-4 text-right">6</span>
+                          <span className="text-slate-600">"logo": "https://www.example.com/logo.png"</span>
+                      </div>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-400 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">info</span>
+                      Standard fields are automatically populated from global settings.
+                  </p>
                </div>
-               <p className="text-xs text-slate-400">Add structured data to enhance rich results in search engines.</p>
             </div>
           </div>
         </div>

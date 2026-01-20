@@ -19,7 +19,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   pageTitle: string;
-  onRestore: (version: string) => void;
+  onRestore?: (version: string) => void;
 }
 
 const HistoryModal: React.FC<Props> = ({ isOpen, onClose, pageTitle, onRestore }) => {
@@ -73,13 +73,13 @@ const HistoryModal: React.FC<Props> = ({ isOpen, onClose, pageTitle, onRestore }
                                 <button className="text-xs font-bold text-primary hover:bg-primary/5 px-2 py-1 rounded transition-colors flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[14px]">visibility</span> Preview
                                 </button>
-                                {index !== 0 && (
-                                     <button 
-                                        onClick={() => onRestore(item.version)}
-                                        className="text-xs font-bold text-slate-600 hover:bg-slate-100 px-2 py-1 rounded transition-colors flex items-center gap-1"
-                                    >
-                                        <span className="material-symbols-outlined text-[14px]">restore</span> Restore
-                                    </button>
+                                {onRestore && (
+                                  <button 
+                                    onClick={() => onRestore(item.version)}
+                                    className="text-xs font-bold text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                                  >
+                                      <span className="material-symbols-outlined text-[14px]">restore</span> Restore
+                                  </button>
                                 )}
                             </div>
                         </div>
