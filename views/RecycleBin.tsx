@@ -148,7 +148,7 @@ const RecycleBin: React.FC<Props> = ({ onNavigate, onRestore }) => {
             <button className="relative flex items-center gap-2 pb-4 text-red-600 after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-full after:bg-red-600 after:content-['']">
               <span className="material-symbols-outlined text-[20px]">delete</span>
               <span className="text-sm font-bold tracking-wide">Recycle Bin</span>
-              <span className="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-extrabold text-red-700">3</span>
+              <span className="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-extrabold text-red-700">{MOCK_DATA_DELETED.length}</span>
             </button>
           </div>
         </div>

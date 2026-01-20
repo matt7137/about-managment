@@ -2,7 +2,8 @@ import React from 'react';
 
 interface Props {
   isOpen: boolean;
-  itemTitle: string;
+  itemTitle?: string;
+  itemCount?: number;
   newStatus: 'Published' | 'Draft';
   onClose: () => void;
   onConfirm: () => void;
@@ -11,6 +12,7 @@ interface Props {
 const StatusChangeModal: React.FC<Props> = ({ 
   isOpen, 
   itemTitle,
+  itemCount,
   newStatus,
   onClose, 
   onConfirm
@@ -18,6 +20,7 @@ const StatusChangeModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   const isPublishing = newStatus === 'Published';
+  const isBulk = itemCount && itemCount > 1;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -29,12 +32,16 @@ const StatusChangeModal: React.FC<Props> = ({
               <span className="material-symbols-outlined text-[24px]">{isPublishing ? 'rocket_launch' : 'history_edu'}</span>
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-slate-900">{isPublishing ? 'Publish Page?' : 'Revert to Draft?'}</h3>
-              <p className="mt-1 text-sm text-slate-500 leading-relaxed">
-                You are about to change the status of <span className="font-bold text-slate-900">{itemTitle}</span> to <span className={`font-bold ${isPublishing ? 'text-emerald-600' : 'text-yellow-600'}`}>{newStatus}</span>.
+              <h3 className="text-lg font-bold text-slate-900">
                 {isPublishing 
-                  ? ' This will make the page visible to the public immediately.' 
-                  : ' This will unpublish the page and hide it from the public.'}
+                  ? (isBulk ? `Publish ${itemCount} Pages?` : 'Publish Page?') 
+                  : (isBulk ? `Revert ${itemCount} Pages to Draft?` : 'Revert to Draft?')}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500 leading-relaxed">
+                You are about to change the status of <span className="font-bold text-slate-900">{isBulk ? `${itemCount} items` : itemTitle}</span> to <span className={`font-bold ${isPublishing ? 'text-emerald-600' : 'text-yellow-600'}`}>{newStatus}</span>.
+                {isPublishing 
+                  ? (isBulk ? ' This will make these pages visible to the public immediately.' : ' This will make the page visible to the public immediately.') 
+                  : (isBulk ? ' This will unpublish these pages and hide them from the public.' : ' This will unpublish the page and hide it from the public.')}
               </p>
             </div>
           </div>

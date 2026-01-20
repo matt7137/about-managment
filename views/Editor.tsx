@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ViewState } from '../types';
+import StatusChangeModal from '../components/StatusChangeModal';
 
 interface Props {
   mode: 'read-only' | 'edit' | 'create';
@@ -35,6 +36,7 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
   const [title, setTitle] = useState(initialTitle);
   const [slug, setSlug] = useState(initialSlug);
   const [hasForbiddenTags, setHasForbiddenTags] = useState(false);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const isReadOnly = mode === 'read-only';
   
   // Resources State
@@ -98,6 +100,15 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
     const content = e.currentTarget.innerText;
     const forbiddenPattern = /<\s*(script|style|link)|style\s*=\s*['"]/i;
     setHasForbiddenTags(forbiddenPattern.test(content));
+  };
+
+  const handlePublishClick = () => {
+    setIsPublishModalOpen(true);
+  };
+
+  const confirmPublish = () => {
+    if (onPublish) onPublish();
+    setIsPublishModalOpen(false);
   };
 
   // Logic for Head Resources
@@ -204,7 +215,7 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
 
               {onPublish && (
                 <button 
-                  onClick={onPublish}
+                  onClick={handlePublishClick}
                   disabled={hasSecurityIssues}
                   className={`px-4 py-2 rounded-lg font-bold shadow-md transition-all text-sm flex items-center gap-2 ${
                     hasSecurityIssues 
@@ -601,6 +612,14 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
           </div>
         </div>
       </div>
+
+      <StatusChangeModal 
+        isOpen={isPublishModalOpen}
+        itemTitle={title}
+        newStatus="Published"
+        onClose={() => setIsPublishModalOpen(false)}
+        onConfirm={confirmPublish}
+      />
     </main>
   );
 };
