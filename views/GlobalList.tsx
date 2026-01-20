@@ -49,7 +49,7 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
   const [filterStatus, setFilterStatus] = useState<'All' | 'Published' | 'Draft'>('All');
   const [sortOption, setSortOption] = useState<'Last Modified' | 'Alphabetical' | 'Status'>('Last Modified');
 
-  // Status Change State
+  // Status Change State (Functionality preserved but currently unused as list is read-only)
   const [statusToChange, setStatusToChange] = useState<{
     id: string;
     title: string;
@@ -338,7 +338,7 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
                       <td className="whitespace-nowrap px-6 py-5">
                         <StatusDropdown 
                           currentStatus={item.status}
-                          onSelectStatus={(newStatus) => handleStatusSelect(item.id, item.title, newStatus)}
+                          readOnly={true} // Status is now automatic via Edit/Publish workflow
                         />
                       </td>
                       <td className="whitespace-nowrap px-6 py-5">
@@ -401,7 +401,16 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
                                   {pageRegions[item.id]?.map((region) => (
                                     <div 
                                       key={region.id}
-                                      onClick={() => onNavigate('LOCAL_LIST')}
+                                      onClick={() => onEdit('EDITOR_LOCAL', {
+                                        id: region.id,
+                                        title: `${item.title} (${region.name})`,
+                                        slug: `/${region.code.toLowerCase()}${item.slug}`,
+                                        status: region.status,
+                                        lastModified: region.lastUpdated,
+                                        author: 'Local Team',
+                                        source: region.sourceType === 'ai' ? 'Translated' : 'Local',
+                                        locale: region.code
+                                      })}
                                       className="flex flex-col p-3 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group relative"
                                     >
                                       <div className="flex items-start justify-between mb-2">
@@ -421,6 +430,18 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
                                             </Tooltip>
                                           )}
                                           
+                                          <Tooltip content="Compare with Global">
+                                            <button 
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                onNavigate('COMPARE');
+                                              }}
+                                              className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors"
+                                            >
+                                              <span className="material-symbols-outlined text-[18px]">difference</span>
+                                            </button>
+                                          </Tooltip>
+
                                           <Tooltip content="Edit Local Content">
                                             <button 
                                               className="rounded p-1 text-slate-300 group-hover:text-primary hover:bg-primary/10 transition-colors"
@@ -518,7 +539,7 @@ const GlobalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
         onConfirm={() => setItemToDelete(null)}
       />
 
-      {/* Status Change Confirmation Modal */}
+      {/* Status Change Confirmation Modal - Kept in codebase but unreachable via dropdown */}
       <StatusChangeModal 
         isOpen={!!statusToChange}
         itemTitle={statusToChange?.title || ''}

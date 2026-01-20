@@ -6,6 +6,7 @@ interface Props {
   title: string;
   slug: string;
   context?: string;
+  version?: string;
   onNavigate: (view: ViewState) => void;
   onSave: () => void;
   onPublish?: () => void;
@@ -30,7 +31,7 @@ const AVAILABLE_RESOURCES: Resource[] = [
   { id: 'js-5', name: 'interactive-maps.js', type: 'js', origin: 'system' },
 ];
 
-const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug, context, onNavigate, onSave, onPublish }) => {
+const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug, context, version, onNavigate, onSave, onPublish }) => {
   const [title, setTitle] = useState(initialTitle);
   const [slug, setSlug] = useState(initialSlug);
   const [hasForbiddenTags, setHasForbiddenTags] = useState(false);
@@ -168,9 +169,16 @@ const Editor: React.FC<Props> = ({ mode, title: initialTitle, slug: initialSlug,
             <span>About Us Page</span>
             {context && <span>/ {context}</span>}
           </div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-            {mode === 'create' ? 'Create New Content' : 'Content Editor'}
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
+                {mode === 'create' ? 'Create New Content' : 'Content Editor'}
+            </h2>
+            {version && (
+                <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-bold ring-1 ring-inset ${isReadOnly ? 'bg-slate-100 text-slate-600 ring-slate-500/10' : 'bg-primary/10 text-primary ring-primary/20'}`}>
+                    {version}
+                </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <button 

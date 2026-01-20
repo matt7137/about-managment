@@ -21,7 +21,24 @@ const App: React.FC = () => {
   };
 
   const handleEdit = (view: ViewState, item: PageItem) => {
-    setEditorData(item);
+    let dataToEdit = { ...item };
+
+    // If editing a Published item, switch to Draft and increment version
+    if (dataToEdit.status === 'Published') {
+      const currentVerStr = dataToEdit.version || 'v1';
+      const currentVerNum = parseInt(currentVerStr.replace(/\D/g, '')) || 1;
+      const newVersion = `v${currentVerNum + 1}`;
+      
+      dataToEdit = {
+        ...dataToEdit,
+        status: 'Draft',
+        version: newVersion
+      };
+      
+      triggerToast(`Created new draft version ${newVersion}`);
+    }
+
+    setEditorData(dataToEdit);
     setCurrentView(view);
   };
 
@@ -38,10 +55,11 @@ const App: React.FC = () => {
       
       {currentView === 'EDITOR_GLOBAL' && (
         <Editor 
-          // Global pages are read-only if Published, editable if Draft
+          // Global pages are read-only if Published, editable if Draft (handled by handleEdit logic above)
           mode={editorData?.status === 'Draft' ? 'edit' : 'read-only'} 
           title={editorData?.title || "Page Title"} 
           slug={editorData?.slug || "slug"} 
+          version={editorData?.version}
           onNavigate={navigate} 
           onSave={() => triggerToast('Global content updated successfully.')}
           onPublish={() => {
@@ -56,6 +74,7 @@ const App: React.FC = () => {
           mode="create" 
           title="" 
           slug="" 
+          version="v1"
           onNavigate={navigate} 
           onSave={() => {
             triggerToast('New page created successfully.');
@@ -74,6 +93,7 @@ const App: React.FC = () => {
           mode={editorData?.status === 'Draft' ? 'edit' : 'read-only'} 
           title={editorData?.title || "Local Page"} 
           slug={editorData?.slug || "slug"} 
+          version={editorData?.version}
           context={editorData?.locale === 'TW' || editorData?.slug.startsWith('/tw') ? 'Taiwan' : 'Local'} 
           onNavigate={navigate} 
           onSave={() => {

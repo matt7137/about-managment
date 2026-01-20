@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom';
 
 interface Props {
   currentStatus: 'Published' | 'Draft';
-  onSelectStatus: (status: 'Published' | 'Draft') => void;
+  onSelectStatus?: (status: 'Published' | 'Draft') => void;
+  readOnly?: boolean;
 }
 
-const StatusDropdown: React.FC<Props> = ({ currentStatus, onSelectStatus }) => {
+const StatusDropdown: React.FC<Props> = ({ currentStatus, onSelectStatus, readOnly = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
@@ -46,6 +47,8 @@ const StatusDropdown: React.FC<Props> = ({ currentStatus, onSelectStatus }) => {
 
   const toggleDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (readOnly) return;
+
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const DROPDOWN_WIDTH = 160; // w-40 is 10rem = 160px
@@ -78,14 +81,17 @@ const StatusDropdown: React.FC<Props> = ({ currentStatus, onSelectStatus }) => {
         ref={buttonRef}
         onClick={toggleDropdown}
         type="button"
-        className={`inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-2 py-1 text-xs font-bold ring-1 ring-inset transition-all hover:ring-2 cursor-pointer ${currentStyle.badge}`}
+        disabled={readOnly}
+        className={`inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-2 py-1 text-xs font-bold ring-1 ring-inset transition-all ${readOnly ? 'cursor-default opacity-90' : 'cursor-pointer hover:ring-2'} ${currentStyle.badge}`}
       >
         <span className={`h-1.5 w-1.5 rounded-full ${currentStyle.dot}`}></span>
         {currentStatus}
-        <span className={`material-symbols-outlined text-[16px] transition-transform ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
+        {!readOnly && (
+          <span className={`material-symbols-outlined text-[16px] transition-transform ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
+        )}
       </button>
 
-      {isOpen && createPortal(
+      {isOpen && !readOnly && onSelectStatus && createPortal(
         <div 
           ref={dropdownMenuRef}
           style={{ top: position.top, left: position.left }}

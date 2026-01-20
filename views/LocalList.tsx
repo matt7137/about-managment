@@ -293,7 +293,7 @@ const LocalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
                       <td className="whitespace-nowrap px-6 py-5">
                          <StatusDropdown 
                           currentStatus={item.status}
-                          onSelectStatus={(newStatus) => handleStatusSelect(item.id, item.title, newStatus)}
+                          readOnly={true} // Status is now automatic via Edit/Publish workflow
                         />
                       </td>
                       <td className="whitespace-nowrap px-6 py-5">
@@ -410,7 +410,7 @@ const LocalList: React.FC<Props> = ({ onNavigate, onEdit }) => {
         onConfirm={() => setItemToDelete(null)}
       />
 
-      {/* Status Change Confirmation Modal */}
+      {/* Status Change Confirmation Modal - Kept in codebase but unreachable via dropdown */}
       <StatusChangeModal 
         isOpen={!!statusToChange}
         itemTitle={statusToChange?.title || ''}
